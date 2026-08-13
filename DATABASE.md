@@ -35,6 +35,7 @@ model User {
   orders        Order[]
   reviews       Review[]
   wishlistItems WishlistItem[]
+  cartItems     CartItem[]
 }
 
 model Account {
@@ -121,6 +122,7 @@ model Product {
   category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   variants ProductVariant[]
   reviews  Review[]
+  wishlistItems WishlistItem[]
 
   @@index([categoryId, isActive])
   @@index([featured, isActive])

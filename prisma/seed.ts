@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "better-auth/crypto";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
@@ -492,13 +493,308 @@ async function main() {
   console.log(`Produk: ${products.length} siap.`);
   console.log(`Variants: ${variantCount} siap.`);
 
+  // ---------- Pengguna demo (Better Auth) ----------
+  interface SeedUser {
+    email: string;
+    name: string;
+    role: "ADMIN" | "CUSTOMER";
+    password: string;
+  }
+
+  const seedUsers: SeedUser[] = [
+    { email: "admin@maisara.my", name: "Aminah", role: "ADMIN", password: "AdminDemo123!" },
+    { email: "nurul@maisara.my", name: "Nurul Aisyah", role: "CUSTOMER", password: "Demo123!" },
+    { email: "aina@maisara.my", name: "Aina Sofea", role: "CUSTOMER", password: "Demo123!" },
+  ];
+  const seedEmails = seedUsers.map((u) => u.email);
+
+  // Padam data sedia ada (idempotent): Review → Payment → OrderItem → Order → Account → User
+  const existingUsers = await db.user.findMany({
+    where: { email: { in: seedEmails } },
+    select: { id: true },
+  });
+  const existingIds = existingUsers.map((u) => u.id);
+  if (existingIds.length > 0) {
+    await db.review.deleteMany({ where: { userId: { in: existingIds } } });
+    await db.payment.deleteMany({ where: { order: { userId: { in: existingIds } } } });
+    await db.orderItem.deleteMany({ where: { order: { userId: { in: existingIds } } } });
+    await db.order.deleteMany({ where: { userId: { in: existingIds } } });
+    await db.account.deleteMany({ where: { userId: { in: existingIds } } });
+    await db.user.deleteMany({ where: { id: { in: existingIds } } });
+    console.log(`Pengguna demo sedia ada dipadam: ${existingIds.length}.`);
+  }
+
+  const users = new Map<string, string>(); // email -> id
+  for (const u of seedUsers) {
+    const passwordHash = await hashPassword(u.password);
+    const user = await db.user.create({
+      data: { name: u.name, email: u.email, emailVerified: true, role: u.role },
+    });
+    await db.account.create({
+      data: {
+        userId: user.id,
+        accountId: user.id,
+        providerId: "credential",
+        password: passwordHash,
+      },
+    });
+    users.set(u.email, user.id);
+  }
+  console.log(`Pengguna demo: ${seedUsers.length} siap.`);
+
+  // ---------- Pesanan demo ----------
+  interface OrderSeedItem {
+    sku: string;
+    productName: string;
+    color: string | null;
+    size: string | null;
+    quantity: number;
+    unitPrice: string;
+  }
+
+  interface OrderSeed {
+    userEmail: string;
+    status: "PENDING" | "COMPLETED" | "SHIPPED" | "CANCELLED";
+    paymentStatus: "PAID" | "FAILED";
+    subtotal: string;
+    shippingFee: string;
+    total: string;
+    shippingMethod: "J&T Express" | "Pos Laju";
+    shippingAddress: {
+      name: string;
+      phone: string;
+      address: string;
+      state: string;
+      postcode: string;
+    };
+    items: OrderSeedItem[];
+  }
+
+  const orderSeeds: OrderSeed[] = [
+    {
+      userEmail: "nurul@maisara.my",
+      status: "PENDING",
+      paymentStatus: "PAID",
+      subtotal: "109.70",
+      shippingFee: "7.00",
+      total: "116.70",
+      shippingMethod: "J&T Express",
+      shippingAddress: {
+        name: "Nurul Aisyah",
+        phone: "012-3456789",
+        address: "No. 12, Jalan Seri Orkid 3, Taman Seri Orkid",
+        state: "Selangor",
+        postcode: "40000",
+      },
+      items: [
+        { sku: "MAI-BELLA-SAGE", productName: "Tudung Bella Voal Premium", color: "Sage", size: null, quantity: 2, unitPrice: "39.90" },
+        { sku: "MAI-BROOCH-GOLD", productName: "Brooch Emas Gold", color: "Gold", size: null, quantity: 1, unitPrice: "29.90" },
+      ],
+    },
+    {
+      userEmail: "nurul@maisara.my",
+      status: "COMPLETED",
+      paymentStatus: "PAID",
+      subtotal: "387.00",
+      shippingFee: "10.00",
+      total: "397.00",
+      shippingMethod: "Pos Laju",
+      shippingAddress: {
+        name: "Nurul Aisyah",
+        phone: "012-3456789",
+        address: "No. 12, Jalan Seri Orkid 3, Taman Seri Orkid",
+        state: "Selangor",
+        postcode: "40000",
+      },
+      items: [
+        { sku: "MAI-CIKPUAN-SAGE-M", productName: "Baju Kurung Moden Cik Puan", color: "Sage", size: "M", quantity: 1, unitPrice: "159.00" },
+        { sku: "MAI-MELATI-IVORY-S", productName: "Baju Kurung Tradisional Melati", color: "Ivory", size: "S", quantity: 1, unitPrice: "139.00" },
+        { sku: "MAI-SERUT-MOCHA", productName: "Handbag Serut Kecil", color: "Mocha", size: null, quantity: 1, unitPrice: "89.00" },
+      ],
+    },
+    {
+      userEmail: "aina@maisara.my",
+      status: "SHIPPED",
+      paymentStatus: "PAID",
+      subtotal: "327.80",
+      shippingFee: "7.00",
+      total: "334.80",
+      shippingMethod: "J&T Express",
+      shippingAddress: {
+        name: "Aina Sofea",
+        phone: "011-2233445",
+        address: "Lot 5, Jalan Melor, Kampung Melor",
+        state: "Kelantan",
+        postcode: "16450",
+      },
+      items: [
+        { sku: "MAI-RAYA-IVORY-M", productName: "Dress Raya Satin", color: "Ivory", size: "M", quantity: 1, unitPrice: "199.00" },
+        { sku: "MAI-SILK-EMERALD", productName: "Shawl Silk Premium", color: "Emerald", size: null, quantity: 1, unitPrice: "89.00" },
+        { sku: "MAI-PIN-GOLD", productName: "Tudung Pin Set", color: "Gold", size: null, quantity: 2, unitPrice: "19.90" },
+      ],
+    },
+    {
+      userEmail: "aina@maisara.my",
+      status: "CANCELLED",
+      paymentStatus: "FAILED",
+      subtotal: "268.90",
+      shippingFee: "10.00",
+      total: "278.90",
+      shippingMethod: "Pos Laju",
+      shippingAddress: {
+        name: "Aina Sofea",
+        phone: "011-2233445",
+        address: "Lot 5, Jalan Melor, Kampung Melor",
+        state: "Kelantan",
+        postcode: "16450",
+      },
+      items: [
+        { sku: "MAI-NAURA-BLACK-M", productName: "Abaya Basic Naura", color: "Black", size: "M", quantity: 1, unitPrice: "249.00" },
+        { sku: "MAI-BAWAL-IVORY", productName: "Tudung Bawal Cotton", color: "Ivory", size: null, quantity: 1, unitPrice: "19.90" },
+      ],
+    },
+  ];
+
+  const orderSkus = [...new Set(orderSeeds.flatMap((o) => o.items.map((i) => i.sku)))];
+  const orderVariants = await db.productVariant.findMany({
+    where: { sku: { in: orderSkus } },
+    select: { id: true, sku: true },
+  });
+  const variantIdBySku = new Map(orderVariants.map((v) => [v.sku, v.id]));
+
+  for (const o of orderSeeds) {
+    const userId = users.get(o.userEmail);
+    if (!userId) throw new Error(`User tidak wujud: ${o.userEmail}`);
+
+    const order = await db.order.create({
+      data: {
+        userId,
+        status: o.status,
+        paymentStatus: o.paymentStatus,
+        subtotal: o.subtotal,
+        shippingFee: o.shippingFee,
+        total: o.total,
+        shippingMethod: o.shippingMethod,
+        shippingAddress: o.shippingAddress,
+        items: {
+          create: o.items.map((item) => {
+            const variantId = variantIdBySku.get(item.sku);
+            if (!variantId) throw new Error(`Variant tidak wujud: ${item.sku}`);
+            return {
+              variantId,
+              productName: item.productName,
+              color: item.color,
+              size: item.size,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+            };
+          }),
+        },
+      },
+    });
+
+    await db.payment.create({
+      data: {
+        orderId: order.id,
+        provider: "mock",
+        reference: `MOCK-${order.id}`,
+        status: o.paymentStatus,
+        amount: o.total,
+        url: `/pembayaran/${order.id}`,
+      },
+    });
+
+    // Kurangkan stok variants yang digunakan (konsisten dengan order items)
+    for (const item of o.items) {
+      await db.productVariant.update({
+        where: { sku: item.sku },
+        data: { stock: { decrement: item.quantity } },
+      });
+    }
+  }
+  console.log(`Pesanan demo: ${orderSeeds.length} siap.`);
+
+  // ---------- Ulasan demo ----------
+  interface ReviewSeed {
+    userEmail: string;
+    productSlug: string;
+    rating: number;
+    comment: string;
+    status: "APPROVED" | "PENDING";
+  }
+
+  const reviewSeeds: ReviewSeed[] = [
+    {
+      userEmail: "nurul@maisara.my",
+      productSlug: "tudung-bella-voal",
+      rating: 5,
+      comment: "Kain selesa dan jahitan kemas. Recommended!",
+      status: "APPROVED",
+    },
+    {
+      userEmail: "nurul@maisara.my",
+      productSlug: "baju-kurung-cik-puan",
+      rating: 4,
+      comment: "Potongan moden dan kain tebal. Sesuai untuk kerja harian.",
+      status: "APPROVED",
+    },
+    {
+      userEmail: "aina@maisara.my",
+      productSlug: "dress-raya-satin",
+      rating: 5,
+      comment: "Material premium dan jatuh kain sangat cantik. Memang sesuai untuk majlis.",
+      status: "APPROVED",
+    },
+    {
+      userEmail: "aina@maisara.my",
+      productSlug: "shawl-silk-premium",
+      rating: 4,
+      comment: "Warna emerald sangat cantik. Cuma kain agak nipis, perlukan dalaman.",
+      status: "PENDING",
+    },
+    {
+      userEmail: "nurul@maisara.my",
+      productSlug: "abaya-basic-naura",
+      rating: 5,
+      comment: "Abaya selesa dan kemas. Kualiti kain sangat baik untuk harga.",
+      status: "PENDING",
+    },
+  ];
+
+  for (const r of reviewSeeds) {
+    const userId = users.get(r.userEmail);
+    if (!userId) throw new Error(`User tidak wujud: ${r.userEmail}`);
+    const product = await db.product.findUniqueOrThrow({
+      where: { slug: r.productSlug },
+      select: { id: true },
+    });
+    await db.review.create({
+      data: {
+        userId,
+        productId: product.id,
+        rating: r.rating,
+        comment: r.comment,
+        status: r.status,
+      },
+    });
+  }
+  console.log(`Ulasan demo: ${reviewSeeds.length} siap.`);
+
   // Pengesahan
-  const [catCount, prodCount, varCount] = await Promise.all([
-    db.category.count(),
-    db.product.count(),
-    db.productVariant.count(),
-  ]);
-  console.log(`Pengesahan - kategori: ${catCount}, produk: ${prodCount}, variants: ${varCount}`);
+  const [catCount, prodCount, varCount, userCount, orderCount, paymentCount, reviewCount, reviewApproved] =
+    await Promise.all([
+      db.category.count(),
+      db.product.count(),
+      db.productVariant.count(),
+      db.user.count({ where: { email: { in: seedEmails } } }),
+      db.order.count({ where: { user: { email: { in: seedEmails } } } }),
+      db.payment.count({ where: { order: { user: { email: { in: seedEmails } } } } }),
+      db.review.count({ where: { user: { email: { in: seedEmails } } } }),
+      db.review.count({ where: { user: { email: { in: seedEmails } }, status: "APPROVED" } }),
+    ]);
+  console.log(
+    `Pengesahan - kategori: ${catCount}, produk: ${prodCount}, variants: ${varCount}, users: ${userCount}, orders: ${orderCount}, payments: ${paymentCount}, reviews: ${reviewCount} (approved: ${reviewApproved})`,
+  );
 }
 
 main()
