@@ -12,6 +12,10 @@ import { USERS, login } from "./helpers";
 test("admin: dashboard, produk, order status, stok, review", async ({ page }) => {
   await login(page, USERS.admin.email, USERS.admin.password);
 
+  // Feedback login: header tunjuk nama + link Admin (bukan "Log Masuk").
+  await expect(page.getByRole("link", { name: "Aminah" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Admin", exact: true })).toBeVisible();
+
   // Dashboard: stats kad + order terkini
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Admin Maisara" })).toBeVisible();

@@ -7,10 +7,13 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { List, X } from "@phosphor-icons/react";
 
 import type { NavCategory } from "@/lib/categories";
+import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import type { HeaderUser } from "./auth-nav";
 
 interface HeaderClientProps {
   categories: NavCategory[];
+  user: HeaderUser | null;
 }
 
 /** Bezier lembut (DESIGN.md 9). */
@@ -20,10 +23,16 @@ const EASE = [0.16, 1, 0.3, 1] as const;
  * Menu mobile Maisara: hamburger morph (List -> X) + overlay full-screen
  * dengan stagger reveal. Reduced motion: semua animasi collapse ke static.
  */
-export function HeaderClient({ categories }: HeaderClientProps) {
+export function HeaderClient({ categories, user }: HeaderClientProps) {
   const [open, setOpen] = useState(false);
   const reduceMotion = useReducedMotion();
   const router = useRouter();
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    router.push("/");
+    router.refresh();
+  };
 
   // Kunci scroll body bila overlay terbuka.
   useEffect(() => {
@@ -148,13 +157,50 @@ export function HeaderClient({ categories }: HeaderClientProps) {
                 {...stagger(categories.length + 2)}
                 className="mt-auto flex flex-col gap-3 pt-12"
               >
-                <Link
-                  href="/log-masuk"
-                  onClick={() => navigate("/log-masuk")}
-                  className="flex h-12 items-center justify-center rounded-full bg-gold px-6 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
-                >
-                  Log Masuk
-                </Link>
+                {user ? (
+                  <>
+                    <Link
+                      href="/akaun"
+                      onClick={() => navigate("/akaun")}
+                      className="flex h-12 items-center justify-center rounded-full bg-gold px-6 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
+                    >
+                      {user.name?.trim() ? user.name : user.email} · Akaun Saya
+                    </Link>
+                    {(user as { role?: string }).role === "ADMIN" && (
+                      <Link
+                        href="/admin"
+                        onClick={() => navigate("/admin")}
+                        className="flex h-12 items-center justify-center rounded-full border border-gold/40 px-6 text-sm font-medium text-gold-deep transition-colors hover:bg-gold-tint"
+                      >
+                        Panel Admin
+                      </Link>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void handleSignOut()}
+                      className="flex h-12 items-center justify-center rounded-full border border-ink/20 px-6 text-sm font-medium text-ink transition-colors hover:border-danger hover:text-danger"
+                    >
+                      Log Keluar
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/log-masuk"
+                      onClick={() => navigate("/log-masuk")}
+                      className="flex h-12 items-center justify-center rounded-full bg-gold px-6 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
+                    >
+                      Log Masuk
+                    </Link>
+                    <Link
+                      href="/daftar"
+                      onClick={() => navigate("/daftar")}
+                      className="flex h-12 items-center justify-center rounded-full border border-ink/20 px-6 text-sm font-medium text-ink transition-colors hover:border-gold hover:text-gold-deep"
+                    >
+                      Daftar
+                    </Link>
+                  </>
+                )}
                 <Link
                   href="/koleksi?search="
                   onClick={() => navigate("/koleksi?search=")}

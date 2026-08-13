@@ -1,19 +1,30 @@
 import Link from "next/link";
 import { CaretDown, Heart, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { headers } from "next/headers";
 
+import { auth } from "@/lib/auth";
 import { getCategories } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 
 import { CartButton } from "./cart-button";
 import { HeaderClient } from "./header-client";
+import { AuthNav } from "./auth-nav";
 
 /**
  * Header Maisara (DESIGN.md 7.1): satu baris, sticky, border-b line.
  * Desktop: logo kiri, nav tengah (Koleksi + dropdown kategori, Kisah Kami),
- * kanan (Carian, Simpan, Cart, Log Masuk). Mobile: hamburger -> HeaderClient.
+ * kanan (Carian, Simpan, Cart, AuthNav). Mobile: hamburger -> HeaderClient.
+ * Session diambil di server (bukan useSession dalam client) supaya
+ * hydration konsisten; selepas login/logout, router.refresh() memuatkan semula.
  */
 export async function Header() {
-  const categories = await getCategories();
+  const [categories, session] = await Promise.all([
+    getCategories(),
+    auth.api.getSession({ headers: await headers() }).catch(() => null),
+  ]);
+  const user = (session?.user ?? null) as
+    | { id: string; name?: string | null; email: string; role?: string }
+    | null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-bg/90 backdrop-blur">
@@ -91,15 +102,10 @@ export async function Header() {
 
           <CartButton />
 
-          <Link
-            href="/log-masuk"
-            className="hidden items-center rounded-full border border-ink/20 px-5 py-2 text-sm font-medium text-ink transition-colors hover:border-gold hover:text-gold-deep lg:inline-flex"
-          >
-            Log Masuk
-          </Link>
+          <AuthNav user={user} />
 
           {/* Hamburger mobile */}
-          <HeaderClient categories={categories} />
+          <HeaderClient categories={categories} user={user} />
         </div>
       </div>
     </header>

@@ -2,12 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 
 /**
  * Borang log masuk (DESIGN.md 7.5 - Form). Selepas sign in:
- * redirect ke callbackUrl dan refresh supaya session/cart dikemas kini
- * (CartSync dalam providers mengurus merge cart).
+ * - Toast feedback "Selamat kembali, <nama>!".
+ * - Redirect ke callbackUrl; jika tiada (default "/"), admin -> /admin, lain -> /.
+ * - Refresh supaya session/cart dikemas kini (CartSync dalam providers mengurus merge cart).
  */
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const router = useRouter();
@@ -31,7 +33,17 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         }
         return;
       }
-      router.push(callbackUrl);
+      const user = result.data?.user;
+      const name = user?.name?.trim() ? user.name : user?.email;
+      toast.success(`Selamat kembali, ${name}!`);
+      // Admin tanpa callbackUrl khusus -> terus ke panel admin.
+      const target =
+        callbackUrl !== "/"
+          ? callbackUrl
+          : (user as { role?: string } | undefined)?.role === "ADMIN"
+            ? "/admin"
+            : "/";
+      router.push(target);
       router.refresh();
     } catch {
       setError("Ralat dalaman. Sila cuba sebentar lagi.");

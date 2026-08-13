@@ -2,13 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 
 /**
  * Borang daftar akaun (UX.md Flow C, DESIGN.md 7.5 - Form).
  * name, email, password (min 8). Tiada medan confirm - ringkas.
- * Selepas sign up (Better Auth auto cipta session), redirect terus ke
- * halaman utama + refresh supaya cart/session dikemas kini.
+ * Selepas sign up (Better Auth auto cipta session), toast feedback +
+ * redirect ke halaman utama + refresh supaya cart/session dikemas kini.
  */
 export function RegisterForm() {
   const router = useRouter();
@@ -38,7 +39,8 @@ export function RegisterForm() {
         }
         return;
       }
-      // Better Auth sign-up mencipta session terus -> teruskan ke utama.
+      // Better Auth sign-up mencipta session terus -> toast + ke utama.
+      toast.success(`Akaun berjaya didaftarkan. Selamat datang, ${name.trim() || email}!`);
       router.push("/");
       router.refresh();
     } catch {

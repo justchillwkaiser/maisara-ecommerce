@@ -41,6 +41,9 @@ test("buy flow lengkap: hero -> koleksi -> PDP -> cart -> checkout -> bayar berj
   await login(page, USERS.nurul.email, USERS.nurul.password);
   await expect(page).toHaveURL(/\/checkout/, { timeout: 20_000 });
 
+  // Feedback login: header tunjuk nama (bukan "Log Masuk").
+  await expect(page.getByRole("link", { name: "Nurul Aisyah" })).toBeVisible();
+
   // Isi alamat -> J&T Express (default) -> Bayar Sekarang
   await fillCheckoutToPayment(page);
   await page.getByRole("button", { name: "Bayar Sekarang" }).click();
