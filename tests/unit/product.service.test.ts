@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   productFindMany: vi.fn(),
   productCount: vi.fn(),
+  productFindUnique: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -10,11 +11,15 @@ vi.mock("@/lib/db", () => ({
     product: {
       findMany: mocks.productFindMany,
       count: mocks.productCount,
+      findUnique: mocks.productFindUnique,
     },
   },
 }));
 
-import { listProducts } from "@/server/services/product.service";
+import {
+  getProductBySlug,
+  listProducts,
+} from "@/server/services/product.service";
 
 /**
  * Row produk raw dari mock db - bentuk sama dengan hasil
@@ -222,5 +227,159 @@ describe("listProducts", () => {
     expect(result.items[0].colors).toEqual(["Sage"]);
     expect(result.items[0].sizes).toEqual(["S", "M", "L"]);
     expect(result.items[0].minStock).toBe(1);
+  });
+});
+
+/**
+ * Row produk detail raw dari mock db - bentuk sama dengan hasil
+ * db.product.findUnique({ where: { slug }, include: { category, variants,
+ * reviews: { include: { user } } } }).
+ */
+function productDetailRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "p1",
+    name: "Tudung Bawal Premium",
+    slug: "tudung-bawal-premium",
+    description: "Bawal premium dari kain voal berkualiti.",
+    price: { toString: () => "49.00" },
+    categoryId: "c1",
+    isActive: true,
+    featured: false,
+    images: ["https://cdn.example.com/tudung-1.jpg", "https://cdn.example.com/tudung-2.jpg"],
+    createdAt: new Date("2026-08-01"),
+    updatedAt: new Date("2026-08-01"),
+    category: {
+      id: "c1",
+      name: "Tudung",
+      slug: "tudung",
+      description: null,
+      image: null,
+      order: 0,
+      createdAt: new Date("2026-08-01"),
+    },
+    variants: [
+      { id: "v1", color: "Sage", size: null, sku: "MAI-BELLA-SAGE", stock: 3 },
+      { id: "v2", color: "Ivory", size: null, sku: "MAI-BELLA-IVORY", stock: 8 },
+    ],
+    reviews: [
+      {
+        id: "r1",
+        rating: 5,
+        comment: "Kain selesa dan jahitan kemas.",
+        createdAt: new Date("2026-08-10"),
+        user: { name: "Nurul Aisyah" },
+      },
+      {
+        id: "r2",
+        rating: 4,
+        comment: "Potongan kemas.",
+        createdAt: new Date("2026-08-09"),
+        user: { name: "Aina Sofea" },
+      },
+      {
+        id: "r3",
+        rating: 5,
+        comment: "Cantik!",
+        createdAt: new Date("2026-08-08"),
+        user: { name: null },
+      },
+    ],
+    ...overrides,
+  };
+}
+
+describe("getProductBySlug", () => {
+  it("return ProductDetail (variants, reviews approved, avgRating 1 dp, reviewCount) bila slug wujud", async () => {
+    mocks.productFindUnique.mockResolvedValue(productDetailRow());
+
+    const result = await getProductBySlug("tudung-bawal-premium");
+
+    expect(result).toEqual({
+      id: "p1",
+      name: "Tudung Bawal Premium",
+      slug: "tudung-bawal-premium",
+      description: "Bawal premium dari kain voal berkualiti.",
+      price: "49.00",
+      images: ["https://cdn.example.com/tudung-1.jpg", "https://cdn.example.com/tudung-2.jpg"],
+      category: { id: "c1", name: "Tudung", slug: "tudung" },
+      variants: [
+        { id: "v1", color: "Sage", size: null, sku: "MAI-BELLA-SAGE", stock: 3 },
+        { id: "v2", color: "Ivory", size: null, sku: "MAI-BELLA-IVORY", stock: 8 },
+      ],
+      reviews: [
+        {
+          id: "r1",
+          rating: 5,
+          comment: "Kain selesa dan jahitan kemas.",
+          createdAt: new Date("2026-08-10"),
+          user: { name: "Nurul Aisyah" },
+        },
+        {
+          id: "r2",
+          rating: 4,
+          comment: "Potongan kemas.",
+          createdAt: new Date("2026-08-09"),
+          user: { name: "Aina Sofea" },
+        },
+        {
+          id: "r3",
+          rating: 5,
+          comment: "Cantik!",
+          createdAt: new Date("2026-08-08"),
+          user: { name: null },
+        },
+      ],
+      avgRating: 4.7, // (5+4+5)/3 = 4.666... -> 1 dp
+      reviewCount: 3,
+    });
+
+    expect(mocks.productFindUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { slug: "tudung-bawal-premium" },
+        include: expect.objectContaining({
+          category: true,
+          variants: expect.objectContaining({ orderBy: { color: "asc" } }),
+          reviews: expect.objectContaining({
+            where: { status: "APPROVED" },
+            orderBy: { createdAt: "desc" },
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("return null bila slug tak wujud", async () => {
+    mocks.productFindUnique.mockResolvedValue(null);
+
+    const result = await getProductBySlug("produk-tak-wujud");
+
+    expect(result).toBeNull();
+  });
+
+  it("return null bila produk isActive false", async () => {
+    mocks.productFindUnique.mockResolvedValue(productDetailRow({ isActive: false }));
+
+    const result = await getProductBySlug("tudung-bawal-premium");
+
+    expect(result).toBeNull();
+  });
+
+  it("return null bila tiada reviews (avgRating null, reviewCount 0)", async () => {
+    mocks.productFindUnique.mockResolvedValue(productDetailRow({ reviews: [] }));
+
+    const result = await getProductBySlug("tudung-bawal-premium");
+
+    expect(result?.avgRating).toBeNull();
+    expect(result?.reviewCount).toBe(0);
+    expect(result?.reviews).toEqual([]);
+  });
+
+  it("hanya review APPROVED disertakan (status lain ditapis oleh query)", async () => {
+    mocks.productFindUnique.mockResolvedValue(productDetailRow());
+
+    await getProductBySlug("tudung-bawal-premium");
+
+    const include = mocks.productFindUnique.mock.calls[0][0].include;
+    expect(include.reviews.where.status).toBe("APPROVED");
   });
 });

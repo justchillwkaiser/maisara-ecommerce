@@ -28,6 +28,54 @@ export interface ProductListResult {
   pageSize: number;
 }
 
+/** Variant penuh untuk PDP (API.md section 2 - GET /api/products/[id]). */
+export interface ProductVariantDetail {
+  id: string;
+  color: string | null;
+  size: string | null;
+  sku: string;
+  stock: number;
+}
+
+/** Review APPROVED untuk PDP (API.md section 6). */
+export interface ProductReviewDetail {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: Date;
+  user: { name: string | null };
+}
+
+/** Detail produk penuh (PDP + API). */
+export interface ProductDetail {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: string;
+  images: string[];
+  category: { id: string; name: string; slug: string };
+  variants: ProductVariantDetail[];
+  reviews: ProductReviewDetail[];
+  avgRating: number | null;
+  reviewCount: number;
+}
+
+/** Include penuh untuk detail produk (kategori, variants tersusun, review APPROVED). */
+export const PRODUCT_DETAIL_INCLUDE = {
+  category: true,
+  variants: { orderBy: { color: "asc" } },
+  reviews: {
+    where: { status: "APPROVED" },
+    include: { user: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+  },
+} satisfies Prisma.ProductInclude;
+
+export type ProductDetailRow = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_DETAIL_INCLUDE;
+}>;
+
 type ProductWithRelations = Prisma.ProductGetPayload<{
   include: {
     category: { select: { name: true; slug: true } };
@@ -133,4 +181,64 @@ export async function listProducts(query: ProductQuery): Promise<ProductListResu
     page,
     pageSize,
   };
+}
+
+/**
+ * Transform row produk penuh -> ProductDetail (API.md section 2).
+ * images di-parse ke string[], price -> string, avgRating dibulat 1 dp.
+ */
+export function toProductDetail(product: ProductDetailRow): ProductDetail {
+  const ratings = product.reviews.map((review) => review.rating);
+  const avgRating =
+    ratings.length > 0
+      ? Math.round((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length) * 10) / 10
+      : null;
+
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    price: product.price.toString(),
+    images: parseImages(product.images),
+    category: {
+      id: product.category.id,
+      name: product.category.name,
+      slug: product.category.slug,
+    },
+    variants: product.variants.map((variant) => ({
+      id: variant.id,
+      color: variant.color,
+      size: variant.size,
+      sku: variant.sku,
+      stock: variant.stock,
+    })),
+    reviews: product.reviews.map((review) => ({
+      id: review.id,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      user: { name: review.user.name },
+    })),
+    avgRating,
+    reviewCount: ratings.length,
+  };
+}
+
+/**
+ * Detail produk aktif oleh slug (PDP). Termasuk kategori, variants (tersusun
+ * ikut warna) dan review APPROVED (terbaru dahulu). Return null jika slug
+ * tidak wujud atau produk tidak aktif.
+ */
+export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
+  const product = await db.product.findUnique({
+    where: { slug },
+    include: PRODUCT_DETAIL_INCLUDE,
+  });
+
+  if (!product || !product.isActive) {
+    return null;
+  }
+
+  return toProductDetail(product);
 }
