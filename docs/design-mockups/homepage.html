@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maisara — Mockup Homepage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF6EF;
+    --surface: #F1E9DC;
+    --surface-alt: #EAE0CE;
+    --card: #FFFDF8;
+    --ink: #2C2622;
+    --ink-soft: #6E6459;
+    --gold: #A8824A;
+    --gold-deep: #8A6836;
+    --gold-tint: #F5EDDD;
+    --success: #5F6B4F;
+    --danger: #9A4A38;
+    --line: #E3D9C8;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---------- Motif batik (signature) ---------- */
+  .batik-bg {
+    background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23A8824A' stroke-width='0.8'%3E%3Cpath d='M60 30 a10 10 0 0 1 20 0 a10 10 0 0 1 -20 0Z'/%3E%3Cpath d='M60 90 a10 10 0 0 1 20 0 a10 10 0 0 1 -20 0Z'/%3E%3Cpath d='M30 60 a10 10 0 0 1 0 20 a10 10 0 0 1 0 -20Z'/%3E%3Cpath d='M90 60 a10 10 0 0 1 0 20 a10 10 0 0 1 0 -20Z'/%3E%3Cpath d='M60 60 m-14 0 a14 14 0 1 1 28 0 a14 14 0 1 1 -28 0'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 120px 120px;
+  }
+  .songket-texture {
+    background-image: repeating-linear-gradient(45deg, rgba(42,38,34,0.025) 0 1px, transparent 1px 6px);
+  }
+
+  /* ---------- Navigation ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(250,246,239,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 72px;
+  }
+  .nav-logo { font-family: var(--serif); font-size: 1.6rem; font-weight: 600; letter-spacing: 0.02em; }
+  .nav-links { display: flex; gap: 2rem; font-size: 0.9rem; }
+  .nav-links a { color: var(--ink-soft); transition: color 0.3s; }
+  .nav-links a:hover { color: var(--gold-deep); }
+  .nav-actions { display: flex; gap: 1.25rem; align-items: center; font-size: 0.9rem; }
+  .nav-actions .icon { opacity: 0.75; }
+  .nav-actions a.btn-login {
+    border: 1px solid var(--ink); border-radius: 999px; padding: 0.5rem 1.25rem;
+    transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+  }
+  .nav-actions a.btn-login:hover { border-color: var(--gold); color: var(--gold-deep); }
+
+  /* ---------- Hero ---------- */
+  .hero { position: relative; min-height: 100dvh; display: flex; align-items: center; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: inherit;
+  }
+  .hero .batik-bg { position: absolute; inset: 0; opacity: 0.05; pointer-events: none; }
+  .hero-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;
+    padding: 6rem 0;
+  }
+  .hero-eyebrow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--gold-deep); font-weight: 500; margin-bottom: 1.5rem;
+  }
+  .hero h1 {
+    font-family: var(--serif); font-weight: 500; font-size: clamp(3rem, 6vw, 4.8rem);
+    line-height: 1.05; letter-spacing: -0.01em; margin-bottom: 1.5rem;
+  }
+  .hero h1 em { font-style: italic; }
+  .hero p.sub {
+    font-size: 1.05rem; color: var(--ink-soft); max-width: 40ch; margin-bottom: 2.5rem;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.75rem;
+    border-radius: 999px; padding: 0.85rem 1.75rem; font-weight: 500;
+    font-size: 0.95rem; transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+    cursor: pointer; border: none;
+  }
+  .btn-primary { background: var(--gold); color: var(--card); }
+  .btn-primary:hover { background: var(--gold-deep); transform: translateY(-1px); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-arrow {
+    width: 1.75rem; height: 1.75rem; border-radius: 999px;
+    background: rgba(255,255,255,0.25); display: inline-flex; align-items: center;
+    justify-content: center; font-size: 0.85rem; transition: transform 0.3s;
+  }
+  .btn-primary:hover .btn-arrow { transform: translateX(2px); }
+  .hero-img-wrap { position: relative; }
+  .hero-img {
+    aspect-ratio: 4/5; width: 100%; object-fit: cover;
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(42,38,34,0.18);
+  }
+  .hero-img-frame {
+    position: absolute; inset: 0; border: 1px solid rgba(168,130,74,0.35);
+    border-radius: 20px; transform: translate(16px, 16px); z-index: -1;
+  }
+
+  /* ---------- Section header ---------- */
+  .section { padding: 6rem 0; }
+  .section-head { margin-bottom: 3rem; }
+  .section-head h2 {
+    font-family: var(--serif); font-weight: 500; font-size: clamp(2rem, 3.5vw, 3rem);
+    line-height: 1.1; letter-spacing: -0.01em;
+  }
+  .section-head .link-all { color: var(--gold-deep); font-size: 0.9rem; }
+
+  /* ---------- Kategori (asymmetric grid) ---------- */
+  .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+  .cat-card {
+    position: relative; overflow: hidden; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(42,38,34,0.06);
+    transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s;
+  }
+  .cat-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(42,38,34,0.12); }
+  .cat-card.large { grid-column: span 2; grid-row: span 2; }
+  .cat-card img { width: 100%; height: 100%; object-fit: cover; }
+  .cat-card .label {
+    position: absolute; left: 1rem; bottom: 1rem; z-index: 2;
+    background: rgba(255,253,248,0.92); backdrop-filter: blur(6px);
+    border-radius: 12px; padding: 0.6rem 1rem;
+    font-family: var(--serif); font-size: 1.15rem; font-weight: 600;
+  }
+  .cat-card .count { display: block; font-family: var(--sans); font-size: 0.75rem; color: var(--ink-soft); font-weight: 400; }
+  .cat-card .batik-bg { position: absolute; inset: 0; opacity: 0.08; pointer-events: none; }
+
+  /* ---------- Featured produk ---------- */
+  .prod-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+  .prod-card { position: relative; }
+  .prod-img {
+    aspect-ratio: 4/5; width: 100%; object-fit: cover; border-radius: 12px;
+    transition: transform 0.7s cubic-bezier(0.16,1,0.3,1);
+  }
+  .prod-img-wrap { overflow: hidden; border-radius: 12px; position: relative; }
+  .prod-card:hover .prod-img { transform: scale(1.04); }
+  .prod-quick {
+    position: absolute; left: 50%; bottom: 1rem; transform: translateX(-50%) translateY(8px);
+    background: rgba(255,253,248,0.94); color: var(--ink);
+    border-radius: 999px; padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 500;
+    opacity: 0; transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+    white-space: nowrap; box-shadow: 0 8px 24px rgba(42,38,34,0.12);
+  }
+  .prod-card:hover .prod-quick { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .prod-info { padding-top: 0.9rem; }
+  .prod-name { font-family: var(--serif); font-size: 1.2rem; font-weight: 600; }
+  .prod-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 0.2rem; }
+  .prod-price { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .prod-stock { font-size: 0.78rem; color: var(--gold-deep); }
+
+  /* ---------- Testimoni ---------- */
+  .testimonial { background: var(--surface); }
+  .testimonial .container { display: grid; grid-template-columns: 2fr 1fr; gap: 4rem; align-items: start; }
+  .t-quote {
+    font-family: var(--serif); font-size: clamp(1.5rem, 2.6vw, 2.2rem); font-style: italic;
+    font-weight: 500; line-height: 1.3; max-width: 24ch;
+  }
+  .t-attrib { margin-top: 1.5rem; font-size: 0.9rem; color: var(--ink-soft); }
+  .t-side { display: flex; flex-direction: column; gap: 1.5rem; }
+  .t-side blockquote { font-family: var(--serif); font-size: 1.1rem; font-style: italic; line-height: 1.4; }
+  .t-side cite { font-style: normal; font-size: 0.8rem; color: var(--ink-soft); }
+
+  /* ---------- Kisah ---------- */
+  .kisah-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+  .kisah-img { aspect-ratio: 4/3; object-fit: cover; border-radius: 16px; width: 100%; }
+  .kisah h2 { font-family: var(--serif); font-weight: 500; font-size: clamp(2rem, 3.5vw, 3rem); line-height: 1.1; margin-bottom: 1.25rem; }
+  .kisah p { color: var(--ink-soft); max-width: 46ch; margin-bottom: 1.5rem; }
+  .jawi { font-family: 'Amiri', 'Cormorant Garamond', serif; font-size: 1.5rem; color: var(--gold-deep); margin-bottom: 1rem; }
+
+  /* ---------- Footer ---------- */
+  footer { background: var(--surface-alt); }
+  .footer-inner { padding: 5rem 0 2rem; }
+  .footer-top { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; margin-bottom: 3rem; }
+  .footer-brand { font-family: var(--serif); font-size: 1.6rem; font-weight: 600; }
+  .footer-desc { color: var(--ink-soft); font-size: 0.9rem; max-width: 30ch; margin-top: 0.75rem; }
+  .footer-col h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 1rem; }
+  .footer-col a { display: block; color: var(--ink-soft); font-size: 0.9rem; padding: 0.3rem 0; }
+  .footer-col a:hover { color: var(--gold-deep); }
+  .footer-bottom {
+    border-top: 1px solid var(--line); padding-top: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.8rem; color: var(--ink-soft);
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1024px) {
+    .hero-grid, .kisah-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+    .hero { padding: 3rem 0; }
+    .prod-grid { grid-template-columns: repeat(2, 1fr); }
+    .cat-grid { grid-template-columns: repeat(2, 1fr); }
+    .cat-card.large { grid-column: span 2; grid-row: span 1; }
+    .testimonial .container { grid-template-columns: 1fr; }
+    .footer-top { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 768px) {
+    .nav-links { display: none; }
+    .prod-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .section { padding: 4rem 0; }
+    .hero h1 { font-size: 2.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="nav-logo" href="#">Maisara</a>
+    <div class="nav-links">
+      <a href="#">Koleksi</a>
+      <a href="#">Tudung</a>
+      <a href="#">Baju Kurung</a>
+      <a href="#">Dress</a>
+      <a href="#">Abaya</a>
+      <a href="#">Aksesori</a>
+      <a href="#">Kisah Kami</a>
+    </div>
+    <div class="nav-actions">
+      <span class="icon">Cari</span>
+      <span class="icon">Simpan</span>
+      <span class="icon">Cart (2)</span>
+      <a class="btn-login" href="#">Log Masuk</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="batik-bg"></div>
+  <div class="container hero-grid">
+    <div>
+      <div class="hero-eyebrow">Koleksi Baharu</div>
+      <h1>Warisan untuk <em>fesyen harian</em></h1>
+      <p class="sub">Tudung, baju kurung dan pakaian modest yang dijahit dengan teliti, untuk wanita Melayu yang menghargai kehalusan.</p>
+      <a class="btn btn-primary" href="#">
+        Lihat Koleksi
+        <span class="btn-arrow">&#8594;</span>
+      </a>
+    </div>
+    <div class="hero-img-wrap">
+      <div class="hero-img-frame"></div>
+      <img class="hero-img" src="https://picsum.photos/seed/maisara-hero/800/1000" alt="Placeholder: model berhijab dalam cahaya hangat">
+    </div>
+  </div>
+</header>
+
+<!-- ============ KATEGORI ============ -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h2>Pilih mengikut koleksi</h2>
+    </div>
+    <div class="cat-grid">
+      <a class="cat-card large" href="#">
+        <div class="batik-bg"></div>
+        <img src="https://picsum.photos/seed/maisara-tudung/900/1100" alt="Koleksi Tudung">
+        <div class="label">Tudung<span class="count">28 produk</span></div>
+      </a>
+      <a class="cat-card" href="#">
+        <img src="https://picsum.photos/seed/maisara-bajukurung/500/600" alt="Koleksi Baju Kurung">
+        <div class="label">Baju Kurung</div>
+      </a>
+      <a class="cat-card" href="#">
+        <img src="https://picsum.photos/seed/maisara-dress/500/600" alt="Koleksi Dress">
+        <div class="label">Dress</div>
+      </a>
+      <a class="cat-card" href="#">
+        <img src="https://picsum.photos/seed/maisara-abaya/500/600" alt="Koleksi Abaya">
+        <div class="label">Abaya</div>
+      </a>
+      <a class="cat-card" href="#">
+        <img src="https://picsum.photos/seed/maisara-aksesori/500/600" alt="Koleksi Aksesori">
+        <div class="label">Aksesori</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRODUK FEATURED ============ -->
+<section class="section">
+  <div class="container">
+    <div class="section-head" style="display:flex; align-items:baseline; justify-content:space-between;">
+      <h2>Pilihan Maisara</h2>
+      <a class="link-all" href="#">Lihat Semua</a>
+    </div>
+    <div class="prod-grid">
+      <div class="prod-card">
+        <div class="prod-img-wrap">
+          <img class="prod-img" src="https://picsum.photos/seed/maisara-p1/600/750" alt="Tudung Bawal Premium">
+          <span class="prod-quick">Tambah ke Cart</span>
+        </div>
+        <div class="prod-info">
+          <div class="prod-name">Tudung Bawal Premium</div>
+          <div class="prod-meta"><span class="prod-price">RM 49.00</span><span class="prod-stock">Stok rendah</span></div>
+        </div>
+      </div>
+      <div class="prod-card">
+        <div class="prod-img-wrap">
+          <img class="prod-img" src="https://picsum.photos/seed/maisara-p2/600/750" alt="Baju Kurung Moden">
+          <span class="prod-quick">Tambah ke Cart</span>
+        </div>
+        <div class="prod-info">
+          <div class="prod-name">Baju Kurung Moden</div>
+          <div class="prod-meta"><span class="prod-price">RM 189.00</span><span class="prod-stock">Tersedia</span></div>
+        </div>
+      </div>
+      <div class="prod-card">
+        <div class="prod-img-wrap">
+          <img class="prod-img" src="https://picsum.photos/seed/maisara-p3/600/750" alt="Shawl Sutera">
+          <span class="prod-quick">Tambah ke Cart</span>
+        </div>
+        <div class="prod-info">
+          <div class="prod-name">Shawl Sutera Maisara</div>
+          <div class="prod-meta"><span class="prod-price">RM 129.00</span><span class="prod-stock">Tersedia</span></div>
+        </div>
+      </div>
+      <div class="prod-card">
+        <div class="prod-img-wrap">
+          <img class="prod-img" src="https://picsum.photos/seed/maisara-p4/600/750" alt="Abaya Elegan">
+          <span class="prod-quick">Tambah ke Cart</span>
+        </div>
+        <div class="prod-info">
+          <div class="prod-name">Abaya Elegan</div>
+          <div class="prod-meta"><span class="prod-price">RM 249.00</span><span class="prod-stock">Habis</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TESTIMONI ============ -->
+<section class="section testimonial">
+  <div class="container">
+    <div>
+      <blockquote class="t-quote">"Kainnya selesa, jahitannya kemas. Maisara jadi pilihan pertama untuk semua majlis."</blockquote>
+      <div class="t-attrib">Nurul Aisyah, Kuala Lumpur</div>
+    </div>
+    <div class="t-side">
+      <blockquote>"Tudung bawal paling lembut yang pernah saya pakai."<cite>Aina Sofea, Shah Alam</cite></blockquote>
+      <blockquote>"Penghantaran cepat, pembungkusan cantik."<cite>Sarah Izzati, Johor Bahru</cite></blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ============ KISAH ============ -->
+<section class="section kisah">
+  <div class="container kisah-grid">
+    <img class="kisah-img" src="https://picsum.photos/seed/maisara-kisah/900/675" alt="Placeholder: suasana butik Maisara">
+    <div>
+      <div class="jawi">مياثرا</div>
+      <h2>Kisah Maisara</h2>
+      <p>Bermula dari sebuah mesin jahit di Johor, Maisara membawa warisan tenun dan batik Melayu ke dalam fesyen harian yang selesa dan bermutu. Setiap helaian dipilih, setiap jahitan dijaga.</p>
+      <a class="btn btn-primary" href="#">
+        Kenali Maisara
+        <span class="btn-arrow">&#8594;</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="batik-bg">
+  <div class="container footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">Maisara</div>
+        <p class="footer-desc">Butik modest fashion. Warisan untuk fesyen harian.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Koleksi</h4>
+        <a href="#">Tudung</a><a href="#">Baju Kurung</a><a href="#">Dress</a><a href="#">Abaya</a><a href="#">Aksesori</a>
+      </div>
+      <div class="footer-col">
+        <h4>Bantuan</h4>
+        <a href="#">Penghantaran</a><a href="#">Pertukaran</a><a href="#">Hubungi Kami</a>
+      </div>
+      <div class="footer-col">
+        <h4>Syarikat</h4>
+        <a href="#">Kisah Kami</a><a href="#">Blog</a><a href="#">Kerjaya</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Maisara. Semua hak terpelihara.</span>
+      <span>مياثرا</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
