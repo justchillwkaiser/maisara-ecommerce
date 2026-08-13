@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
+import { Footer } from "@/components/shared/footer";
+import { Header } from "@/components/shared/header";
+
 const serif = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["500", "600"],
@@ -26,7 +29,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ms"
       className={`${serif.variable} ${sans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Header />
+        <main className="flex flex-1 flex-col">{children}</main>
+        <Footer />
+      </body>
     </html>
   );
 }
