@@ -236,12 +236,14 @@ Senarai semua variants dengan stock + status rendah. Query: `?lowOnly=true` untu
 | Code | HTTP | Maksud |
 |---|---|---|
 | `VALIDATION_ERROR` | 400 | Zod fail; `issues` disertakan |
+| `INVALID_TRANSITION` | 400 | Perubahan status order tidak sah (API.md section 4) |
 | `UNAUTHORIZED` | 401 | Tiada session |
 | `FORBIDDEN` | 403 | Session ada, role/izin tidak cukup |
 | `NOT_FOUND` | 404 | Resource tiada |
 | `OUT_OF_STOCK` | 409 | Variant habis stok |
 | `INSUFFICIENT_STOCK` | 409 | Stok tak cukup semasa checkout |
 | `SKU_EXISTS` | 409 | SKU duplicate |
+| `SLUG_EXISTS` | 409 | Slug duplicate (POST/PATCH produk) |
 | `ALREADY_REVIEWED` | 409 | Review duplicate |
 | `ORDER_NOT_COMPLETED` | 403 | Belum layak review |
 | `PAYMENT_INVALID` | 422 | Callback payment tidak sah |

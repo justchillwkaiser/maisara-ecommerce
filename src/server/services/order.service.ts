@@ -17,6 +17,22 @@ export interface CreateOrderResult {
   redirectUrl: string;
 }
 
+/** Status order yang sah (API.md section 4 - PATCH /api/orders/[id]/status). */
+export type OrderStatusValue = "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED";
+
+/**
+ * Transition order yang dibenarkan (API.md section 4):
+ * PENDING -> PROCESSING -> SHIPPED -> COMPLETED;
+ * CANCELLED hanya dari PENDING/PROCESSING. Tiada rollback selepas SHIPPED.
+ */
+const ORDER_STATUS_TRANSITIONS: Record<OrderStatusValue, OrderStatusValue[]> = {
+  PENDING: ["PROCESSING", "CANCELLED"],
+  PROCESSING: ["SHIPPED", "CANCELLED"],
+  SHIPPED: ["COMPLETED"],
+  COMPLETED: [],
+  CANCELLED: [],
+};
+
 /** Include penuh untuk baris cart semasa checkout (harga & snapshot dari DB). */
 const CHECKOUT_CART_INCLUDE = {
   variant: {
@@ -259,4 +275,81 @@ export async function getOrderDetail(orderId: string, user: { id: string; role: 
         }
       : null,
   };
+}
+
+export interface AdminOrderListItem {
+  id: string;
+  status: string;
+  paymentStatus: string;
+  total: string;
+  createdAt: string;
+  itemCount: number;
+  user: { name: string | null; email: string | null };
+}
+
+/** Senarai semua order untuk admin (API.md section 7 - jadual order). */
+export async function listAllOrders(): Promise<AdminOrderListItem[]> {
+  const orders = await db.order.findMany({
+    include: {
+      user: { select: { name: true, email: true } },
+      _count: { select: { items: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return orders.map((order) => ({
+    id: order.id,
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    total: order.total.toString(),
+    createdAt: order.createdAt.toISOString(),
+    itemCount: order._count.items,
+    user: { name: order.user.name, email: order.user.email },
+  }));
+}
+
+/**
+ * Kemaskini status order (API.md section 4 - PATCH /api/orders/[id]/status).
+ * Transaction: semak order + items, validasi transition, pulangkan stok jika
+ * CANCELLED dari PENDING/PROCESSING, kemudian update status.
+ */
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatusValue,
+): Promise<void> {
+  await db.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: { items: { select: { variantId: true, quantity: true } } },
+    });
+
+    if (!order) {
+      throw new ApiError("NOT_FOUND", "Order tidak ditemui.", 404);
+    }
+
+    const allowed = ORDER_STATUS_TRANSITIONS[order.status as OrderStatusValue] ?? [];
+    if (!allowed.includes(status)) {
+      throw new ApiError(
+        "INVALID_TRANSITION",
+        "Perubahan status order tidak sah. Semak aliran status yang dibenarkan.",
+        400,
+      );
+    }
+
+    // CANCELLED: pulangkan stok variants ikut kuantiti setiap item (order
+    // asalnya telah tolak stok semasa checkout).
+    if (status === "CANCELLED") {
+      for (const item of order.items) {
+        await tx.productVariant.updateMany({
+          where: { id: item.variantId },
+          data: { stock: { increment: item.quantity } },
+        });
+      }
+    }
+
+    await tx.order.update({
+      where: { id: orderId },
+      data: { status },
+    });
+  });
 }

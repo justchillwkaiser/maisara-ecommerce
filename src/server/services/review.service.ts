@@ -94,3 +94,37 @@ export async function updateReviewStatus(
     throw new ApiError("NOT_FOUND", "Ulasan tidak ditemui.", 404);
   }
 }
+
+export interface AdminReviewItem {
+  id: string;
+  rating: number;
+  comment: string;
+  status: string;
+  createdAt: string;
+  product: { name: string; slug: string };
+  user: { name: string | null };
+}
+
+/** Senarai review untuk moderasi admin (API.md section 6, tab status). */
+export async function listAdminReviews(
+  status?: "PENDING" | "APPROVED" | "HIDDEN",
+): Promise<AdminReviewItem[]> {
+  const reviews = await db.review.findMany({
+    where: status ? { status } : {},
+    include: {
+      product: { select: { name: true, slug: true } },
+      user: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return reviews.map((review) => ({
+    id: review.id,
+    rating: review.rating,
+    comment: review.comment,
+    status: review.status,
+    createdAt: review.createdAt.toISOString(),
+    product: { name: review.product.name, slug: review.product.slug },
+    user: { name: review.user.name },
+  }));
+}

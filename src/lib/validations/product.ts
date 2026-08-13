@@ -66,3 +66,35 @@ export const productCreateSchema = z.object({
 });
 
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;
+
+/**
+ * Validasi update produk admin (API.md section 7 - PATCH /api/products/[id]).
+ * Semua field optional; `isActive` hanya untuk edit (soft delete toggle).
+ * `variants` optional - jika hadir, senarai variants digantikan (sync ikut SKU).
+ */
+export const productUpdateSchema = z.object({
+  name: z.string().min(3, "Nama produk sekurang-kurangnya 3 aksara.").optional(),
+  slug: z.string().optional(),
+  description: z.string().min(10, "Penerangan sekurang-kurangnya 10 aksara.").optional(),
+  price: z.coerce
+    .number()
+    .positive("Harga mesti positif.")
+    .max(99999.99, "Harga maksimum RM 99,999.99.")
+    .optional(),
+  categoryId: z.string().min(1, "Kategori diperlukan.").optional(),
+  images: z.array(z.string()).optional(),
+  featured: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  variants: z
+    .array(
+      z.object({
+        color: z.string().optional(),
+        size: z.string().optional(),
+        sku: z.string().min(2, "SKU sekurang-kurangnya 2 aksara."),
+        stock: z.number().int().min(0).default(0),
+      }),
+    )
+    .optional(),
+});
+
+export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
