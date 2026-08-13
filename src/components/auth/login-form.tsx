@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
 /**
- * Borang log masuk ringkas (placeholder Task 11). Selepas sign in:
+ * Borang log masuk (DESIGN.md 7.5 - Form). Selepas sign in:
  * redirect ke callbackUrl dan refresh supaya session/cart dikemas kini
  * (CartSync dalam providers mengurus merge cart).
  */
@@ -24,7 +24,11 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
     try {
       const result = await authClient.signIn.email({ email, password });
       if (result.error) {
-        setError(result.error.message ?? "Email atau kata laluan tidak sah.");
+        if (result.error.code === "INVALID_EMAIL_OR_PASSWORD") {
+          setError("Email atau kata laluan tidak sah.");
+        } else {
+          setError(result.error.message ?? "Email atau kata laluan tidak sah.");
+        }
         return;
       }
       router.push(callbackUrl);

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Heart } from "@phosphor-icons/react/dist/ssr";
 import { Prisma } from "@/generated/prisma/client";
 
 import { ProductCard, type ProductCardProduct } from "@/components/shop/product-card";
@@ -9,6 +8,8 @@ import { ProductGallery } from "@/components/shop/product-gallery";
 import { PdpClient } from "@/components/shop/pdp-client";
 import { RatingStars } from "@/components/shop/rating-stars";
 import { ReviewList } from "@/components/shop/review-list";
+import { ReviewForm } from "@/components/shop/review-form";
+import { WishlistButton } from "@/components/shop/wishlist-button";
 import { db } from "@/lib/db";
 import { formatRM } from "@/lib/format";
 import {
@@ -156,14 +157,7 @@ export default async function ProdukPage({ params }: ProdukPageProps) {
           </div>
 
           <div className="mt-8 flex items-center gap-3 border-t border-line pt-6">
-            {/* TODO (Task 11): wire ke wishlist (auth + API). */}
-            <button
-              type="button"
-              aria-label="Simpan ke wishlist"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line text-ink-soft transition-colors hover:border-gold hover:text-gold-deep"
-            >
-              <Heart size={20} />
-            </button>
+            <WishlistButton productId={product.id} />
             <p className="text-sm text-ink-soft">
               Penghantaran dalam 2-4 hari bekerja
             </p>
@@ -177,6 +171,10 @@ export default async function ProdukPage({ params }: ProdukPageProps) {
         avgRating={product.avgRating}
         reviewCount={product.reviewCount}
       />
+
+      <div className="mx-auto mt-10 max-w-3xl">
+        <ReviewForm productId={product.id} />
+      </div>
 
       {/* Produk berkaitan */}
       <section className="border-t border-line py-16 md:py-24">

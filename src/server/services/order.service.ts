@@ -178,6 +178,8 @@ export interface OrderDetail {
     size: string | null;
     quantity: number;
     unitPrice: string;
+    /** Imej pertama produk (untuk paparan detail order); null jika tiada. */
+    image: string | null;
   }>;
   payment: {
     provider: string;
@@ -188,6 +190,21 @@ export interface OrderDetail {
   } | null;
 }
 
+/** Images disimpan sebagai Json (array URL, kadang-kala string JSON). */
+function parseImages(images: unknown): string[] {
+  const raw = Array.isArray(images) ? images : typeof images === "string" ? tryParse(images) : [];
+  return raw.filter((item): item is string => typeof item === "string");
+
+  function tryParse(value: string): unknown[] {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+}
+
 /**
  * Detail order (API.md section 4 - GET /api/orders/[id]).
  * Customer hanya order sendiri; admin boleh semua.
@@ -195,7 +212,18 @@ export interface OrderDetail {
 export async function getOrderDetail(orderId: string, user: { id: string; role: string }): Promise<OrderDetail> {
   const order = await db.order.findUnique({
     where: { id: orderId },
-    include: { items: true, payment: true },
+    include: {
+      items: {
+        include: {
+          variant: {
+            include: {
+              product: { select: { images: true, name: true } },
+            },
+          },
+        },
+      },
+      payment: true,
+    },
   });
 
   if (!order || (order.userId !== user.id && user.role !== "ADMIN")) {
@@ -219,6 +247,7 @@ export async function getOrderDetail(orderId: string, user: { id: string; role: 
       size: item.size,
       quantity: item.quantity,
       unitPrice: item.unitPrice.toString(),
+      image: parseImages(item.variant?.product?.images)[0] ?? null,
     })),
     payment: order.payment
       ? {
