@@ -56,7 +56,7 @@ export function AdminReviewActions({ reviewId }: { reviewId: string }) {
         )}
       >
         <Eye size={14} />
-        Approve
+        Lulus
       </button>
       <button
         type="button"
