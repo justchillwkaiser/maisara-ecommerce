@@ -4,6 +4,7 @@ import { MockFpxActions } from "@/components/shop/mock-fpx-actions";
 import { db } from "@/lib/db";
 import { formatRM } from "@/lib/format";
 import { requireUser } from "@/server/guards";
+export const dynamic = "force-dynamic";
 
 interface PaymentPageProps {
   params: Promise<{ orderId: string }>;

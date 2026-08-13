@@ -47,3 +47,5 @@ fallback-data.tmp.txt
 # test artifacts
 /test-results
 /playwright-report
+
+.vercel

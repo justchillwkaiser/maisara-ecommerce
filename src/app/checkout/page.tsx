@@ -6,6 +6,7 @@ import { CheckoutForm } from "@/components/shop/checkout-form";
 import { getCartContext } from "@/lib/cart-context";
 import { requireUser } from "@/server/guards";
 import { getCart } from "@/server/services/cart.service";
+export const dynamic = "force-dynamic";
 
 /**
  * Checkout (DESIGN.md 8, UX.md Flow A).

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AkaunNav } from "@/components/akaun/akaun-nav";
 import { requireUser } from "@/server/guards";
+export const dynamic = "force-dynamic";
 
 /**
  * Layout akaun (UX.md section 4, DESIGN.md 8 - Akaun).

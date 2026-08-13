@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/admin-nav";
 import { requireAdmin } from "@/server/guards";
+export const dynamic = "force-dynamic";
 
 /**
  * Layout admin (UX.md section 4, DESIGN.md 8 - Admin Panel).

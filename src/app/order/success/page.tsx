@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+export const dynamic = "force-dynamic";
 
 interface OrderSuccessPageProps {
   searchParams: Promise<{ order?: string; status?: string }>;
