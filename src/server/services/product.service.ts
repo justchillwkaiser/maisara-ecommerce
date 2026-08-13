@@ -17,6 +17,8 @@ export interface ProductSummary {
   colors: string[];
   sizes: string[];
   minStock: number;
+  /** Variant pertama yang ada stok (untuk quick add ke cart); null jika tiada. */
+  quickAddVariantId: string | null;
   avgRating: number | null;
   reviewCount: number;
 }
@@ -125,6 +127,7 @@ function toSummary(product: ProductWithRelations): ProductSummary {
     colors,
     sizes,
     minStock: stocks.length > 0 ? Math.min(...stocks) : 0,
+    quickAddVariantId: product.variants.find((variant) => variant.stock > 0)?.id ?? null,
     avgRating:
       ratings.length > 0
         ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length

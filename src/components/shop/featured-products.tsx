@@ -54,7 +54,7 @@ async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
     const products = await db.product.findMany({
       where: { featured: true, isActive: true },
       include: {
-        variants: { select: { stock: true } },
+        variants: { select: { id: true, stock: true } },
         reviews: {
           where: { status: "APPROVED" },
           select: { rating: true },
@@ -91,6 +91,7 @@ async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
         price: product.price.toString(),
         image,
         minStock,
+        quickAddVariantId: product.variants.find((variant) => variant.stock > 0)?.id ?? null,
         avgRating,
         reviewCount: ratings.length,
       };

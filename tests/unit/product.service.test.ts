@@ -76,6 +76,7 @@ describe("listProducts", () => {
           colors: ["Sage", "Ivory"],
           sizes: [],
           minStock: 3,
+          quickAddVariantId: "v1",
           avgRating: 14 / 3,
           reviewCount: 3,
         },

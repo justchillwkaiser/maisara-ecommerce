@@ -111,6 +111,7 @@ function toSummary(product: ProductSeed): ProductSummary {
     colors,
     sizes,
     minStock: stocks.length > 0 ? Math.min(...stocks) : 0,
+    quickAddVariantId: null, // fallback tiada ID variant sebenar; kad link ke PDP
     avgRating: null,
     reviewCount: 0,
   };

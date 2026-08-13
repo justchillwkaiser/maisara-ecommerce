@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { Footer } from "@/components/shared/footer";
 import { Header } from "@/components/shared/header";
+import { Providers } from "@/components/shared/providers";
 
 const serif = Cormorant_Garamond({
   subsets: ["latin"],
@@ -30,9 +31,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${serif.variable} ${sans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Header />
-        <main className="flex flex-1 flex-col">{children}</main>
-        <Footer />
+        <Providers>
+          <Header />
+          <main className="flex flex-1 flex-col">{children}</main>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );
