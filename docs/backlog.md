@@ -4,8 +4,9 @@ Senarai kerja polishing yang disusun pada 14 Ogos 2026 (selepas deploy v1). Seti
 
 ## P1 — Bug Pecah (wajib baiki dahulu)
 
-1. **Halaman /kisah-kami (404)** — nav ("Kisah Kami"), footer (Syarikat) dan CTA "Kenali Maisara" di BrandStory semua menunjuk ke page yang tidak wujud. Buat page editorial ringkas: kisah jenama (boleh guna semula copy dari brand-story.tsx + mockup), imej, Jawi "مياثرا", CTA ke koleksi. Gaya ikut DESIGN.md (soft luxury, motif).
-2. **Halaman /cart (404)** — CartButton fallback link ke /cart (nampak dalam DOM bila drawer tak dibuka). Buat page senarai cart ringkas (reuse cart service/context) + CTA ke checkout. ATAU tukar CartButton link ke "#" supaya hanya drawer berfungsi (pilih yang lebih baik: page lebih robust).
+1. **Halaman /kisah-kami (404)** — ✓ SELESAI (14 Aug 2026, commit 88cf877): page editorial dibina (Jawi, motif, imej, CTA ke koleksi).
+2. **Halaman /cart (404)** — ✓ SELESAI (14 Aug 2026, commit 88cf877): page senarai cart penuh + ringkasan + CTA checkout.
+3. **Footer links Bantuan/Syarikat** — ✓ SELESAI (14 Aug 2026, commit 7125655): /penghantaran, /pertukaran, /hubungi-kami dibina; Blog/Kerjaya dibuang (tiada kandungan).
 
 ## P2 — Showcase / Portfolio
 
