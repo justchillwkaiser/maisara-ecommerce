@@ -6,7 +6,7 @@ const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://maisara-beta.vercel.app");
+    : "https://maisarabutik.vercel.app");
 
 /** Sitemap: halaman statik + kategori dinamik. Produk (PDP) tidak di-index (see sitemap). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

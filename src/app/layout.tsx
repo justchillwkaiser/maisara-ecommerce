@@ -21,14 +21,14 @@ const sans = Plus_Jakarta_Sans({
 /**
  * Metadata global (SEO): metadataBase penting supaya OG image dan
  * canonical URL resolve dengan betul. Guna VERCEL_PROJECT_PRODUCTION_URL
- * bila deploy di Vercel; fallback ke maisara-beta.vercel.app.
- * Tukar bila domain custom dipasang (backlog P2.5).
+ * bila deploy di Vercel; fallback ke maisarabutik.vercel.app.
+ * Tukar bila domain custom dipasang.
  */
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://maisara-beta.vercel.app");
+    : "https://maisarabutik.vercel.app");
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

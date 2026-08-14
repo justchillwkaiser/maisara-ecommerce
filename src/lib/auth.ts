@@ -8,6 +8,7 @@ export const auth = betterAuth({
     "http://localhost:3000",
     "https://maisara.vercel.app",
     "https://maisara-beta.vercel.app",
+    "https://maisarabutik.vercel.app",
   ].filter(Boolean),
   database: prismaAdapter(db, { provider: "postgresql" }),
   emailAndPassword: { enabled: true },
