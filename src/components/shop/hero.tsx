@@ -64,18 +64,19 @@ export function Hero() {
             aria-hidden="true"
             className="absolute inset-0 translate-x-4 translate-y-4 rounded-2xl border border-gold/35"
           />
-          <Reveal delay={0.2} duration={0.4}>
-            <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-[0_24px_64px_rgba(42,38,34,0.18)]">
-              <Image
-                src="https://picsum.photos/seed/maisara-hero/800/1000"
-                alt="Model berhijab dalam cahaya hangat"
-                fill
-                priority
-                sizes="(min-width: 1024px) 50vw, 100vw"
-                className="object-cover"
-              />
-            </div>
-          </Reveal>
+          {/* NOTA: imej hero ialah LCP element - JANGAN balut dengan Reveal
+              (opacity 0 awal melambatkan LCP sehingga animasi selesai). */}
+          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-[0_24px_64px_rgba(42,38,34,0.18)]">
+            <Image
+              src="/products/tudung-1.jpg"
+              alt="Model berhijab dalam cahaya hangat"
+              fill
+              priority
+              decoding="sync"
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="object-cover"
+            />
+          </div>
         </div>
       </div>
     </section>
