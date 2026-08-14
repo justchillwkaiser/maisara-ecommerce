@@ -1,29 +1,55 @@
-# Maisara — Butik Modest Fashion (E-commerce)
+<div align="center">
 
-E-commerce butik modest fashion (brand fiksyen) untuk portfolio freelance. Full-stack production-quality: storefront, cart, checkout dengan mock FPX, akaun pengguna, wishlist, review dan admin panel.
+# Maisara
 
-**Design:** soft luxury heritage dengan motif batik/songket sebagai signature. Bahasa Melayu, mata wang RM.
+### Butik Modest Fashion — E-Commerce
+
+**Soft-luxury heritage fashion store, built for the Malaysian market.**
+
+Next.js 16 · React 19 · Tailwind v4 · PostgreSQL · Better Auth · Prisma 7
+
+[🌐 Live Demo](https://maisara-beta.vercel.app) · [🛠 Admin Demo](https://maisara-beta.vercel.app/admin)
+
+</div>
 
 ---
 
-## Features
+## Tentang Projek
 
-**Pelanggan**
-- Homepage editorial (hero, kategori, featured, testimoni, kisah jenama)
-- Katalog dengan filter (kategori, harga, warna, saiz), carian dan susun
-- PDP dengan galeri, variant picker (warna/saiz), status stok
-- Cart (guest + user, merge selepas login) dengan drawer
+Maisara ialah platform e-commerce lengkap untuk butik modest fashion — brand fiksyen yang dibina sebagai portfolio showcase. Dari katalog dan cart sehingga checkout, akaun pengguna dan admin panel, semuanya berfungsi sebagai satu sistem penuh.
+
+**Konsep:** warisan Melayu (batik/songket) bertemu soft-luxury moden — palet krim dan emas, tipografi serif elegan, dan motif halus yang konsisten di seluruh pengalaman.
+
+---
+
+## Skrin
+
+| Homepage | Katalog | Produk |
+|---|---|---|
+| ![Homepage](screenshots/home.jpg) | ![Katalog](screenshots/koleksi.jpg) | ![Produk](screenshots/produk.jpg) |
+
+---
+
+## Ciri-ciri
+
+**Untuk Pelanggan**
+- Homepage editorial: hero, kategori, produk pilihan, testimoni, kisah jenama
+- Katalog dengan carian, penapis (kategori, harga, warna, saiz) dan susunan
+- Halaman produk: galeri imej, pemilih variant (warna/saiz), status stok
+- Cart pintar (tetamu + pengguna berdaftar, digabung selepas log masuk)
 - Checkout 3 langkah: alamat → penghantaran (J&T Express / Pos Laju) → semakan & bayar
-- Payment mock FPX (redirect page, success/fail) dengan abstraction layer untuk swap ke gateway sebenar
-- Akaun: profil, sejarah order + status, wishlist
-- Review produk (selepas order selesai, dimoderasi admin)
+- Simulasi bayaran FPX (mock, tiada caj sebenar) — sedia untuk integrasi gateway sebenar
+- Akaun: profil, sejarah pesanan + status, wishlist
+- Ulasan produk (selepas pesanan selesai, disederhanakan admin)
 
-**Admin**
-- Dashboard: jualan, order terkini, amaran stok rendah
-- Produk CRUD + variants + stok
-- Order management dengan transition validation (stok dipulangkan bila batal)
-- Stok tracking (low stock alerts)
-- Moderasi review
+**Untuk Admin**
+- Dashboard: jualan, pesanan terkini, amaran stok rendah
+- Pengurusan produk lengkap: CRUD + variant + stok
+- Pengurusan pesanan dengan validasi peralihan status (stok dipulangkan bila dibatalkan)
+- Penjejakan stok (amaran stok rendah)
+- Moderasi ulasan
+
+---
 
 ## Tech Stack
 
@@ -31,84 +57,43 @@ E-commerce butik modest fashion (brand fiksyen) untuk portfolio freelance. Full-
 |---|---|
 | Frontend | Next.js 16 (App Router) · React 19 · TypeScript strict |
 | Styling | Tailwind CSS v4 · shadcn/ui · Cormorant Garamond + Plus Jakarta Sans |
-| Animation | motion/react (Framer Motion) |
-| Auth | Better Auth (email/password, role customer/admin) |
-| Database | PostgreSQL (Supabase/Neon) · Prisma 7 (driver adapter) |
-| Validation | Zod 4 |
-| Testing | Vitest (unit) · Playwright (e2e) |
+| Animasi | motion/react (Framer Motion) |
+| Auth | Better Auth (email/password, peranan customer/admin) |
+| Database | PostgreSQL (Supabase) · Prisma 7 (driver adapter) |
+| Validasi | Zod 4 |
+| Testing | Vitest (unit) · Playwright (E2E) |
 | Deploy | Vercel |
+
+---
 
 ## Demo Accounts
 
-| Role | Email | Password |
+| Peranan | Emel | Kata Laluan |
 |---|---|---|
 | Admin | `admin@maisara.my` | `AdminDemo123!` |
-| Customer | `nurul@maisara.my` | `Demo123!` |
-| Customer | `aina@maisara.my` | `Demo123!` |
+| Pelanggan | `nurul@maisara.my` | `Demo123!` |
+| Pelanggan | `aina@maisara.my` | `Demo123!` |
 
-## Setup Local
+> **Nota:** Semua pembayaran adalah simulasi (mode mock) — tiada wang sebenar atau kad kredit terlibat.
+
+---
+
+## Jalan Pantas (Local Development)
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Setup environment (salin dan isi)
-cp .env.example .env
-# DATABASE_URL="postgresql://..."
-# AUTH_SECRET="<random 32+ chars>"
-# PAYMENT_PROVIDER="mock"
-
-# 3. Migrate + seed
+cp .env.example .env   # isi DATABASE_URL, AUTH_SECRET, PAYMENT_PROVIDER=mock
 npx prisma migrate deploy
 npx prisma db seed
-
-# 4. Jalankan
-npm run dev
-# Buka http://localhost:3000
+npm run dev            # http://localhost:3000
 ```
 
-## Test & Quality
+**Quality gates:** `npm run test` · `npm run typecheck` · `npm run lint` · `npm run build`
 
-```bash
-npm run test        # Unit tests (Vitest)
-npm run typecheck   # TypeScript strict
-npm run lint        # ESLint
-npx playwright test # E2E (browser)
-npm run build       # Production build
-```
+---
 
-## Struktur
+<div align="center">
 
-```
-src/
-  app/          # Routes (storefront, akaun, admin, api)
-  components/   # ui (shadcn), shop, admin, shared, auth, akaun
-  lib/          # db, auth, payments (abstraction), validations, format
-  server/
-    services/   # Business logic (bebas transport, unit-tested)
-    guards.ts   # requireUser / requireAdmin
-  proxy.ts      # Route protection (Next 16)
-prisma/         # Schema + seed
-docs/           # Spec, design, plan, mockup
-```
+Dibina dengan **Next.js 16** · **TypeScript** · **Tailwind v4** · Deployed on **Vercel**
 
-## Payment Abstraction
-
-`src/lib/payments/` — `PaymentProvider` interface dengan `MockPaymentProvider`. Flow FPX disimulasikan sepenuhnya (redirect, callback, status). Untuk integrasi sebenar, tambah `BillPlzProvider`/`ToyyibPayProvider` dan set `PAYMENT_PROVIDER` — tiada perubahan pada business logic.
-
-## Deploy (Vercel)
-
-1. Import repo GitHub ke vercel.com → New Project (framework auto-detect Next.js).
-2. Set env: `DATABASE_URL`, `AUTH_SECRET` (jana: `openssl rand -base64 32`), `PAYMENT_PROVIDER=mock`, `BETTER_AUTH_URL=<production URL>`.
-3. Jalankan migration + seed pada production DB: `npx prisma migrate deploy && npx prisma db seed`.
-4. Deploy.
-
-## Dokumentasi
-
-- `PRD.md` — product requirements & acceptance criteria
-- `UX.md` — user flows & information architecture
-- `DESIGN.md` — design system (source of truth visual)
-- `ARCHITECTURE.md` — layer & struktur
-- `DATABASE.md` — schema & relationships
-- `API.md` — kontrak endpoint
-- `AGENTS.md` — rules untuk AI dalam project
+</div>
