@@ -1,10 +1,49 @@
 import { expect, type Page } from "@playwright/test";
+import { readFileSync, rmSync } from "node:fs";
+import path from "node:path";
 
 /** Akaun demo dari seed (prisma/seed.ts). */
 export const USERS = {
   admin: { email: "admin@maisara.my", password: "AdminDemo123!" },
   nurul: { email: "nurul@maisara.my", password: "Demo123!" },
 } as const;
+
+const REPO_ROOT = path.resolve(__dirname, "../..");
+
+/**
+ * Padam fail mock reset URL SEBELUM request reset baru, supaya helper
+ * tidak tersilap baca token lama (race: Better Auth guna
+ * runInBackgroundOrAwait - response balik sebelum callback selesai tulis).
+ */
+export function clearResetUrl(): void {
+  rmSync(path.join(REPO_ROOT, ".reset-url.tmp"), { force: true });
+}
+
+/**
+ * Ambil token reset terbaru dari mock email transport (fail .reset-url.tmp).
+ * Polling dengan timeout kerana callback server ditulis secara background
+ * selepas response (runInBackgroundOrAwait). NOTA: Better Auth simpan token
+ * HASH dalam model Verification - value DB bukan token boleh guna. Token
+ * sebenar ialah yang dihantar kepada user (fail/log mock transport).
+ */
+export async function getLatestResetToken(): Promise<string> {
+  const file = path.join(REPO_ROOT, ".reset-url.tmp");
+  const deadline = Date.now() + 10_000;
+  let lastError: unknown = null;
+  while (Date.now() < deadline) {
+    try {
+      const url = readFileSync(file, "utf8").trim();
+      const token = new URL(url).searchParams.get("token");
+      if (token) return token;
+    } catch (err) {
+      lastError = err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  throw new Error(
+    `getLatestResetToken: fail .reset-url.tmp tidak ditulis (${String(lastError)})`,
+  );
+}
 
 /**
  * Login melalui UI (/log-masuk) - menguji form auth sebenar,

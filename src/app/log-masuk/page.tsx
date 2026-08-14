@@ -10,16 +10,17 @@ export const metadata: Metadata = {
 };
 
 interface LoginPageProps {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; reset?: string }>;
 }
 
 /**
  * Log masuk (UX.md Flow C, DESIGN.md 7.5 - Form).
  * Layout tengah max-w-md, tajuk serif "Selamat Kembali". Selepas sign in,
  * redirect ke callbackUrl (biasanya halaman yang diminta tadi).
+ * ?reset=1 (selepas set semula kata laluan) memaparkan mesej success.
  */
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { next } = await searchParams;
+  const { next, reset } = await searchParams;
   const callbackUrl = next && next.startsWith("/") ? next : "/";
 
   return (
@@ -33,6 +34,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           Log masuk untuk meneruskan membeli-belah di Maisara.
         </p>
       </div>
+
+      {reset === "1" && (
+        <div
+          role="alert"
+          className="mt-6 rounded-2xl border border-gold/40 bg-gold-tint px-4 py-3 text-center text-sm text-ink"
+        >
+          Kata laluan berjaya diset semula. Sila log masuk.
+        </div>
+      )}
 
       <LoginForm callbackUrl={callbackUrl} />
 

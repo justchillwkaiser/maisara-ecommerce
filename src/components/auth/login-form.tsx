@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 
@@ -89,6 +90,14 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           {error}
         </p>
       )}
+      <div className="flex justify-end">
+        <Link
+          href="/lupa-kata-laluan"
+          className="text-xs font-medium text-gold-deep underline underline-offset-2 transition-colors hover:text-gold"
+        >
+          Lupa kata laluan?
+        </Link>
+      </div>
       <button
         type="submit"
         disabled={pending}
