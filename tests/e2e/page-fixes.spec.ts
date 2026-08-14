@@ -37,3 +37,37 @@ test("cart page: senarai item + CTA checkout selepas tambah produk", async ({
   await expect(page.getByRole("link", { name: "Teruskan ke Checkout" })).toBeVisible();
   await expect(page.getByText("Ringkasan")).toBeVisible();
 });
+
+test("footer links: halaman bantuan dan syarikat berfungsi", async ({ page }) => {
+  await page.goto("/");
+  const footer = page.getByRole("contentinfo");
+
+  // Bantuan: Penghantaran
+  await footer.getByRole("link", { name: "Penghantaran" }).click();
+  await expect(page).toHaveURL(/\/penghantaran/);
+  await expect(
+    page.getByRole("heading", { name: "Penghantaran", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("J&T Express")).toBeVisible();
+
+  // Bantuan: Pertukaran
+  await page.goto("/");
+  await footer.getByRole("link", { name: "Pertukaran" }).click();
+  await expect(page).toHaveURL(/\/pertukaran/);
+  await expect(
+    page.getByRole("heading", { name: "Pertukaran", exact: true }),
+  ).toBeVisible();
+
+  // Bantuan: Hubungi Kami
+  await page.goto("/");
+  await footer.getByRole("link", { name: "Hubungi Kami" }).click();
+  await expect(page).toHaveURL(/\/hubungi-kami/);
+  await expect(
+    page.getByRole("heading", { name: "Hubungi Kami", exact: true }),
+  ).toBeVisible();
+
+  // Syarikat: Kisah Kami
+  await page.goto("/");
+  await footer.getByRole("link", { name: "Kisah Kami" }).click();
+  await expect(page).toHaveURL(/\/kisah-kami/);
+});

@@ -10,15 +10,13 @@ interface FooterColumn {
 }
 
 const HELP_LINKS: FooterColumn["links"] = [
-  { label: "Penghantaran", href: "#" },
-  { label: "Pertukaran", href: "#" },
-  { label: "Hubungi Kami", href: "#" },
+  { label: "Penghantaran", href: "/penghantaran" },
+  { label: "Pertukaran", href: "/pertukaran" },
+  { label: "Hubungi Kami", href: "/hubungi-kami" },
 ];
 
 const COMPANY_LINKS: FooterColumn["links"] = [
   { label: "Kisah Kami", href: "/kisah-kami" },
-  { label: "Blog", href: "#" },
-  { label: "Kerjaya", href: "#" },
 ];
 
 /**
