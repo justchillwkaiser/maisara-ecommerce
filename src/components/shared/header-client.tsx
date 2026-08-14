@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -105,117 +106,124 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
         </AnimatePresence>
       </button>
 
-      {/* Overlay full-screen */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="overlay"
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={reduceMotion ? undefined : { opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-bg/95 backdrop-blur lg:hidden"
-          >
-            <nav
-              aria-label="Menu utama"
-              className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col px-4 pb-10 pt-24 md:px-8"
-            >
-              <ul className="space-y-1">
-                <motion.li {...stagger(0)}>
-                  <Link
-                    href="/koleksi"
-                    onClick={() => navigate("/koleksi")}
-                    className="block py-2 font-serif text-3xl font-medium text-ink transition-colors hover:text-gold-deep"
-                  >
-                    Semua Koleksi
-                  </Link>
-                </motion.li>
-                {categories.map((category, index) => (
-                  <motion.li key={category.slug} {...stagger(index + 1)}>
-                    <Link
-                      href={`/koleksi/${category.slug}`}
-                      onClick={() => navigate(`/koleksi/${category.slug}`)}
-                      className="block py-2 font-serif text-3xl font-medium text-ink-soft transition-colors hover:text-gold-deep"
-                    >
-                      {category.name}
-                    </Link>
-                  </motion.li>
-                ))}
-                <motion.li {...stagger(categories.length + 1)}>
-                  <Link
-                    href="/kisah-kami"
-                    onClick={() => navigate("/kisah-kami")}
-                    className="block py-2 font-serif text-3xl font-medium text-ink-soft transition-colors hover:text-gold-deep"
-                  >
-                    Kisah Kami
-                  </Link>
-                </motion.li>
-              </ul>
-
-              {/* Aksi bawah */}
+      {/* Overlay full-screen. Portal ke body: header (sticky + backdrop-blur)
+          mencipta containing block untuk position:fixed, menyebabkan inset-0
+          resolve terhadap header (72px) bukan viewport -> menu jadi scroll.
+          Portal melepaskan overlay daripada containing block itu. */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
               <motion.div
-                {...stagger(categories.length + 2)}
-                className="mt-auto flex flex-col gap-3 pt-12"
+                key="overlay"
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={reduceMotion ? undefined : { opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-bg/95 backdrop-blur lg:hidden"
               >
-                {user ? (
-                  <>
-                    <Link
-                      href="/akaun"
-                      onClick={() => navigate("/akaun")}
-                      className="flex h-12 items-center justify-center rounded-full bg-gold px-6 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
-                    >
-                      {user.name?.trim() ? user.name : user.email} · Akaun Saya
-                    </Link>
-                    {(user as { role?: string }).role === "ADMIN" && (
-                      <Link
-                        href="/admin"
-                        onClick={() => navigate("/admin")}
-                        className="flex h-12 items-center justify-center rounded-full border border-gold/40 px-6 text-sm font-medium text-gold-deep transition-colors hover:bg-gold-tint"
-                      >
-                        Panel Admin
-                      </Link>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => void handleSignOut()}
-                      className="flex h-12 items-center justify-center rounded-full border border-ink/20 px-6 text-sm font-medium text-ink transition-colors hover:border-danger hover:text-danger"
-                    >
-                      Log Keluar
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/log-masuk"
-                      onClick={() => navigate("/log-masuk")}
-                      className="flex h-12 items-center justify-center rounded-full bg-gold px-6 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
-                    >
-                      Log Masuk
-                    </Link>
-                    <Link
-                      href="/daftar"
-                      onClick={() => navigate("/daftar")}
-                      className="flex h-12 items-center justify-center rounded-full border border-ink/20 px-6 text-sm font-medium text-ink transition-colors hover:border-gold hover:text-gold-deep"
-                    >
-                      Daftar
-                    </Link>
-                  </>
-                )}
-                <Link
-                  href="/koleksi?search="
-                  onClick={() => navigate("/koleksi?search=")}
-                  className={cn(
-                    "flex h-12 items-center justify-center rounded-full border border-ink/20",
-                    "text-sm font-medium text-ink transition-colors hover:border-gold hover:text-gold-deep",
-                  )}
+                <nav
+                  aria-label="Menu utama"
+                  className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col px-4 pb-10 pt-24 md:px-8"
                 >
-                  Cari Produk
-                </Link>
+                  <ul className="space-y-1">
+                    <motion.li {...stagger(0)}>
+                      <Link
+                        href="/koleksi"
+                        onClick={() => navigate("/koleksi")}
+                        className="block py-2 font-serif text-3xl font-medium text-ink transition-colors hover:text-gold-deep"
+                      >
+                        Semua Koleksi
+                      </Link>
+                    </motion.li>
+                    {categories.map((category, index) => (
+                      <motion.li key={category.slug} {...stagger(index + 1)}>
+                        <Link
+                          href={`/koleksi/${category.slug}`}
+                          onClick={() => navigate(`/koleksi/${category.slug}`)}
+                          className="block py-2 font-serif text-3xl font-medium text-ink-soft transition-colors hover:text-gold-deep"
+                        >
+                          {category.name}
+                        </Link>
+                      </motion.li>
+                    ))}
+                    <motion.li {...stagger(categories.length + 1)}>
+                      <Link
+                        href="/kisah-kami"
+                        onClick={() => navigate("/kisah-kami")}
+                        className="block py-2 font-serif text-3xl font-medium text-ink-soft transition-colors hover:text-gold-deep"
+                      >
+                        Kisah Kami
+                      </Link>
+                    </motion.li>
+                  </ul>
+
+                  {/* Aksi bawah */}
+                  <motion.div
+                    {...stagger(categories.length + 2)}
+                    className="mt-auto flex flex-col gap-3 pt-12"
+                  >
+                    {user ? (
+                      <>
+                        <Link
+                          href="/akaun"
+                          onClick={() => navigate("/akaun")}
+                          className="flex h-12 items-center justify-center rounded-full bg-gold px-6 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
+                        >
+                          {user.name?.trim() ? user.name : user.email} · Akaun Saya
+                        </Link>
+                        {(user as { role?: string }).role === "ADMIN" && (
+                          <Link
+                            href="/admin"
+                            onClick={() => navigate("/admin")}
+                            className="flex h-12 items-center justify-center rounded-full border border-gold/40 px-6 text-sm font-medium text-gold-deep transition-colors hover:bg-gold-tint"
+                          >
+                            Panel Admin
+                          </Link>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void handleSignOut()}
+                          className="flex h-12 items-center justify-center rounded-full border border-ink/20 px-6 text-sm font-medium text-ink transition-colors hover:border-danger hover:text-danger"
+                        >
+                          Log Keluar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/log-masuk"
+                          onClick={() => navigate("/log-masuk")}
+                          className="flex h-12 items-center justify-center rounded-full bg-gold px-6 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
+                        >
+                          Log Masuk
+                        </Link>
+                        <Link
+                          href="/daftar"
+                          onClick={() => navigate("/daftar")}
+                          className="flex h-12 items-center justify-center rounded-full border border-ink/20 px-6 text-sm font-medium text-ink transition-colors hover:border-gold hover:text-gold-deep"
+                        >
+                          Daftar
+                        </Link>
+                      </>
+                    )}
+                    <Link
+                      href="/koleksi?search="
+                      onClick={() => navigate("/koleksi?search=")}
+                      className={cn(
+                        "flex h-12 items-center justify-center rounded-full border border-ink/20",
+                        "text-sm font-medium text-ink transition-colors hover:border-gold hover:text-gold-deep",
+                      )}
+                    >
+                      Cari Produk
+                    </Link>
+                  </motion.div>
+                </nav>
               </motion.div>
-            </nav>
-          </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </>
   );
 }
