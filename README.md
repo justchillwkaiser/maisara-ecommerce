@@ -8,7 +8,7 @@
 
 Next.js 16 · React 19 · Tailwind v4 · PostgreSQL · Better Auth · Prisma 7
 
-[🌐 Live Demo](https://maisara-beta.vercel.app) · [🛠 Admin Demo](https://maisara-beta.vercel.app/admin)
+[🌐 Live Demo](https://maisarabutik.vercel.app) · [🛠 Admin Demo](https://maisarabutik.vercel.app/admin)
 
 </div>
 
