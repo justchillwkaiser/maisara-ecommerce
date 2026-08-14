@@ -91,6 +91,14 @@ Jika dokumen bercanggah, yang lebih spesifik menang (cth. DESIGN.md mengatasi st
 - [ ] Demo account berfungsi (admin + customer)
 - [ ] README dikemas kini (setup, demo account)
 
+## 9. Local DB connectivity (Supabase)
+
+- **Direct host `db.<ref>.supabase.co` adalah IPv6-only** — tidak boleh di-resolve dari local Windows (ENOTFOUND / SocketTimeout).
+- Untuk development/e2e local, `DATABASE_URL` dalam `.env` mesti guna **pooler**:
+  `postgresql://postgres.<ref>:<password>@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=no-verify`
+  (ref = `yxrilufvdxucoosimlwu`; guna `postgres.<ref>` sebagai user, BUKAN `postgres` sahaja — pooler tolak user tanpa suffix).
+- Jangan tukar `DATABASE_URL` di Vercel env (production guna direct host dengan betul).
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
