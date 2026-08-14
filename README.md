@@ -59,7 +59,7 @@ Maisara ialah platform e-commerce lengkap untuk butik modest fashion — brand f
 | Styling | Tailwind CSS v4 · shadcn/ui · Cormorant Garamond + Plus Jakarta Sans |
 | Animasi | motion/react (Framer Motion) |
 | Auth | Better Auth (email/password, peranan customer/admin) |
-| Database | PostgreSQL (Supabase) · Prisma 7 (driver adapter) |
+| Database | PostgreSQL (Supabase) · Prisma 7 |
 | Validasi | Zod 4 |
 | Testing | Vitest (unit) · Playwright (E2E) |
 | Deploy | Vercel |
@@ -75,20 +75,6 @@ Maisara ialah platform e-commerce lengkap untuk butik modest fashion — brand f
 | Pelanggan | `aina@maisara.my` | `Demo123!` |
 
 > **Nota:** Semua pembayaran adalah simulasi (mode mock) — tiada wang sebenar atau kad kredit terlibat.
-
----
-
-## Jalan Pantas (Local Development)
-
-```bash
-npm install
-cp .env.example .env   # isi DATABASE_URL, AUTH_SECRET, PAYMENT_PROVIDER=mock
-npx prisma migrate deploy
-npx prisma db seed
-npm run dev            # http://localhost:3000
-```
-
-**Quality gates:** `npm run test` · `npm run typecheck` · `npm run lint` · `npm run build`
 
 ---
 
