@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatRM } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import { useCart, type CartItemView } from "../shared/cart-context";
 
@@ -40,10 +41,11 @@ function ItemSkeletons() {
  * Gaya ikut DESIGN.md (kad card, garisan line, gold CTA).
  */
 export function CartPage() {
-  const { items, subtotal, itemCount, loading, updateQuantity, remove } =
+  const { items, subtotal, itemCount, loading, pendingItemIds, updateQuantity, remove } =
     useCart();
 
   async function handleUpdate(itemId: string, quantity: number) {
+    if (pendingItemIds.has(itemId)) return; // tunggu sync selesai
     try {
       await updateQuantity(itemId, quantity);
     } catch (error) {
@@ -54,6 +56,7 @@ export function CartPage() {
   }
 
   async function handleRemove(itemId: string) {
+    if (pendingItemIds.has(itemId)) return; // tunggu sync selesai
     try {
       await remove(itemId);
     } catch (error) {
@@ -96,7 +99,13 @@ export function CartPage() {
           {/* Senarai item */}
           <ul className="divide-y divide-line rounded-2xl border border-line bg-card">
             {items.map((item) => (
-              <li key={item.id} className="flex gap-4 p-5 md:gap-5">
+              <li
+                key={item.id}
+                className={cn(
+                  "flex gap-4 p-5 transition-opacity md:gap-5",
+                  pendingItemIds.has(item.id) && "opacity-60",
+                )}
+              >
                 <Link
                   href={`/produk/${item.product.slug}`}
                   className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-surface"
@@ -137,11 +146,16 @@ export function CartPage() {
                   )}
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex items-center rounded-full border border-line bg-card">
+                    <div
+                      className={cn(
+                        "inline-flex items-center rounded-full border border-line bg-card",
+                        pendingItemIds.has(item.id) && "opacity-60",
+                      )}
+                    >
                       <button
                         type="button"
                         aria-label="Kurangkan kuantiti"
-                        disabled={item.quantity <= 1}
+                        disabled={item.quantity <= 1 || pendingItemIds.has(item.id)}
                         onClick={() =>
                           void handleUpdate(item.id, item.quantity - 1)
                         }
@@ -160,7 +174,8 @@ export function CartPage() {
                         aria-label="Tambah kuantiti"
                         disabled={
                           item.quantity >=
-                          Math.min(Math.max(item.variant.stock, 1), 99)
+                            Math.min(Math.max(item.variant.stock, 1), 99) ||
+                          pendingItemIds.has(item.id)
                         }
                         onClick={() =>
                           void handleUpdate(item.id, item.quantity + 1)

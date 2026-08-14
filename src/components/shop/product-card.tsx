@@ -101,7 +101,13 @@ export function ProductCard({ product, className }: ProductCardProps) {
     if (quickAddId == null || pending) return;
     setPending(true);
     try {
-      await add(quickAddId);
+      // Optimistic: hantar preview supaya badge/drawer update serta-merta.
+      await add(quickAddId, 1, {
+        product: { name: product.name, slug: product.slug },
+        variant: { color: null, size: null, stock: Math.max(product.minStock, 1) },
+        unitPrice: String(product.price),
+        image: product.image,
+      });
       toast.success("Ditambah ke cart");
     } catch (error) {
       toast.error(

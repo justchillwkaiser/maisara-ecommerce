@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
 import { db } from "@/lib/db";
@@ -49,8 +50,12 @@ const FALLBACK_FEATURED: ProductCardProduct[] = [
   },
 ];
 
-async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
-  try {
+/**
+ * Query DB di-cache 5 minit - senarai featured jarang berubah dan dikongsi
+ * oleh semua pengunjung homepage. Fallback (DB offline) kekal di luar cache.
+ */
+const getFeaturedProductsCached = unstable_cache(
+  async (): Promise<ProductCardProduct[]> => {
     const products = await db.product.findMany({
       where: { featured: true, isActive: true },
       include: {
@@ -96,6 +101,14 @@ async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
         reviewCount: ratings.length,
       };
     });
+  },
+  ["koleksi-featured"],
+  { revalidate: 300 },
+);
+
+async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
+  try {
+    return await getFeaturedProductsCached();
   } catch {
     return FALLBACK_FEATURED;
   }

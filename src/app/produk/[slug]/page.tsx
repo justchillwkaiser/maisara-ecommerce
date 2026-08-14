@@ -153,7 +153,15 @@ export default async function ProdukPage({ params }: ProdukPageProps) {
           </p>
 
           <div className="mt-8">
-            <PdpClient variants={product.variants} />
+            <PdpClient
+              variants={product.variants}
+              product={{
+                name: product.name,
+                slug: product.slug,
+                price: product.price,
+                image: product.images[0] ?? "",
+              }}
+            />
           </div>
 
           <div className="mt-8 flex items-center gap-3 border-t border-line pt-6">

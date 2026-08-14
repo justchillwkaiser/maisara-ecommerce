@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
 import { FilterDrawer } from "@/components/shop/filter-drawer";
@@ -29,9 +30,11 @@ interface KoleksiViewProps {
 /**
  * Data warna/saiz untuk sidebar: distinct dari variants produk aktif
  * (dalam kategori aktif jika ada). Fallback = data seed bila DB offline.
+ * Query di-cache 5 minit - set warna/saiz jarang berubah dan dikongsi
+ * oleh /koleksi dan /koleksi/[category] pada setiap request.
  */
-async function getFilterOptions(categorySlug?: string) {
-  try {
+const getFilterOptionsCached = unstable_cache(
+  async (categorySlug?: string): Promise<{ colors: string[]; sizes: string[] }> => {
     const categoryWhere = categorySlug ? { category: { slug: categorySlug } } : {};
     const [colorRows, sizeRows] = await Promise.all([
       db.productVariant.findMany({
@@ -52,6 +55,14 @@ async function getFilterOptions(categorySlug?: string) {
       ...new Set(sizeRows.map((row) => row.size).filter(Boolean)),
     ].sort() as string[];
     return { colors, sizes };
+  },
+  ["koleksi-filter-options"],
+  { revalidate: 300 },
+);
+
+async function getFilterOptions(categorySlug?: string) {
+  try {
+    return await getFilterOptionsCached(categorySlug);
   } catch {
     return { colors: FALLBACK_COLORS, sizes: FALLBACK_SIZES };
   }

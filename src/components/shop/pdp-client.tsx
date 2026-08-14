@@ -10,6 +10,8 @@ import { VariantPicker } from "./variant-picker";
 
 interface PdpClientProps {
   variants: ProductVariantDetail[];
+  /** Data produk untuk optimistic add (nama, harga, imej dari page server). */
+  product: { name: string; slug: string; price: string; image: string };
 }
 
 /** Status stok (DESIGN.md 7.6): teks ink-soft, gold tint pill, surface pill. */
@@ -37,7 +39,7 @@ function StockStatus({ stock }: { stock: number | null }) {
  * render VariantPicker + QuantityStepper + AddToCart + status stok.
  * Parent (server page) hantar variants; semua interaksi di sini.
  */
-export function PdpClient({ variants }: PdpClientProps) {
+export function PdpClient({ variants, product }: PdpClientProps) {
   const [variantId, setVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
@@ -67,7 +69,13 @@ export function PdpClient({ variants }: PdpClientProps) {
         <StockStatus stock={stock} />
       </div>
 
-      <AddToCart variantId={variantId} stock={stock} quantity={quantity} />
+      <AddToCart
+        variantId={variantId}
+        stock={stock}
+        quantity={quantity}
+        product={product}
+        variant={selected}
+      />
     </div>
   );
 }

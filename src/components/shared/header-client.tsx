@@ -61,11 +61,11 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
   };
 
   const stagger = (index: number) => ({
-    initial: reduceMotion ? false : { opacity: 0, y: 16 },
+    initial: reduceMotion ? false : { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0 },
     transition: reduceMotion
       ? { duration: 0 }
-      : { duration: 0.6, delay: index * 0.06, ease: EASE },
+      : { duration: 0.35, delay: index * 0.04, ease: EASE },
     exit: reduceMotion ? undefined : { opacity: 0, y: 8 },
   });
 

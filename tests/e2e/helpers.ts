@@ -72,6 +72,9 @@ export async function addFirstProductToCart(page: Page): Promise<void> {
   await page.locator('a[href^="/produk/"]').first().click();
   await expect(page).toHaveURL(/\/produk\//);
 
+  // Tunggu content PDP sebenar (loading skeleton hilang) sebelum cari swatch.
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
   // Swatch warna pertama yang ada stok (aria-label "Warna X").
   const colorButtons = page.getByRole("button", { name: /^Warna / });
   const colorCount = await colorButtons.count();

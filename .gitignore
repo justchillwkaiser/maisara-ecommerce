@@ -48,4 +48,11 @@ fallback-data.tmp.txt
 /test-results
 /playwright-report
 
+# e2e mock email transport (runtime sahaja - jangan commit)
+.reset-url.tmp
+
+# Next.js 16 agent rules (auto-generated oleh next build/dev)
+AGENTS.md
+CLAUDE.md
+
 .vercel

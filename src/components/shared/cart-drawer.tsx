@@ -30,20 +30,27 @@ function variantLabel(item: CartItemView): string {
 /** Stepper kuantiti kecil untuk drawer (h-8, cap stok). */
 function MiniStepper({
   item,
+  pending,
   onDecrease,
   onIncrease,
 }: {
   item: CartItemView;
+  pending: boolean;
   onDecrease: () => void;
   onIncrease: () => void;
 }) {
   const cap = Math.min(Math.max(item.variant.stock, 1), 99);
   return (
-    <div className="inline-flex items-center rounded-full border border-line bg-card">
+    <div
+      className={cn(
+        "inline-flex items-center rounded-full border border-line bg-card",
+        pending && "opacity-60",
+      )}
+    >
       <button
         type="button"
         aria-label="Kurangkan kuantiti"
-        disabled={item.quantity <= 1}
+        disabled={item.quantity <= 1 || pending}
         onClick={onDecrease}
         className="flex h-8 w-8 items-center justify-center rounded-full text-ink transition-colors hover:text-gold-deep disabled:cursor-not-allowed disabled:opacity-40"
       >
@@ -55,7 +62,7 @@ function MiniStepper({
       <button
         type="button"
         aria-label="Tambah kuantiti"
-        disabled={item.quantity >= cap}
+        disabled={item.quantity >= cap || pending}
         onClick={onIncrease}
         className="flex h-8 w-8 items-center justify-center rounded-full text-ink transition-colors hover:text-gold-deep disabled:cursor-not-allowed disabled:opacity-40"
       >
@@ -88,10 +95,21 @@ function ItemSkeletons() {
  * + CTA "Teruskan ke Checkout" (gold pill penuh) ke /checkout.
  */
 export function CartDrawer() {
-  const { items, subtotal, itemCount, isOpen, loading, close, updateQuantity, remove } = useCart();
+  const {
+    items,
+    subtotal,
+    itemCount,
+    isOpen,
+    loading,
+    pendingItemIds,
+    close,
+    updateQuantity,
+    remove,
+  } = useCart();
   const reduceMotion = useReducedMotion();
 
   async function handleUpdate(itemId: string, quantity: number) {
+    if (pendingItemIds.has(itemId)) return; // tunggu sync selesai
     try {
       await updateQuantity(itemId, quantity);
     } catch (error) {
@@ -100,6 +118,7 @@ export function CartDrawer() {
   }
 
   async function handleRemove(itemId: string) {
+    if (pendingItemIds.has(itemId)) return; // tunggu sync selesai
     try {
       await remove(itemId);
     } catch (error) {
@@ -151,7 +170,7 @@ export function CartDrawer() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={reduceMotion ? undefined : { opacity: 0, x: 16 }}
                     transition={{ duration: 0.25, ease: EASE }}
-                    className="py-4"
+                    className={cn("py-4", pendingItemIds.has(item.id) && "opacity-60")}
                   >
                     <div className="flex gap-3">
                       <Link
@@ -196,6 +215,7 @@ export function CartDrawer() {
                         <div className="mt-2 flex items-center justify-between gap-3">
                           <MiniStepper
                             item={item}
+                            pending={pendingItemIds.has(item.id)}
                             onDecrease={() => void handleUpdate(item.id, item.quantity - 1)}
                             onIncrease={() => void handleUpdate(item.id, item.quantity + 1)}
                           />
