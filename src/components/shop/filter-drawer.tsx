@@ -28,7 +28,7 @@ export function FilterDrawer({ children }: { children: React.ReactNode }) {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-[85%] overflow-y-auto bg-bg sm:max-w-sm">
-        <SheetHeader>
+        <SheetHeader className="border-b border-line">
           <SheetTitle className="flex items-center justify-between font-serif text-2xl font-semibold text-ink">
             Tapisan
             <Button
@@ -41,7 +41,9 @@ export function FilterDrawer({ children }: { children: React.ReactNode }) {
             </Button>
           </SheetTitle>
         </SheetHeader>
-        {children}
+        {/* Padding content: SheetHeader dah p-4 sendiri; children kena padding
+            sendiri supaya tidak melekat ke kiri sheet (mobile UI/UX). */}
+        <div className="px-5 pb-10">{children}</div>
       </SheetContent>
     </Sheet>
   );
