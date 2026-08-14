@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { db } from "@/lib/db";
 import { requireUser } from "@/server/guards";
+import { ProfilForm } from "@/components/akaun/profil-form";
 
 export const metadata: Metadata = {
   title: "Akaun Saya",
@@ -12,8 +13,8 @@ export const metadata: Metadata = {
 
 /**
  * Profil akaun (UX.md section 4, DESIGN.md 8 - Akaun).
- * Paparan info user + ringkasan (jumlah order, wishlist count).
- * Paparan sahaja untuk Task 11 - edit nama/email sebagai nota masa depan.
+ * Info user + ringkasan (jumlah order, wishlist count) + borang edit
+ * profil (nama, kata laluan) - P3.
  */
 export default async function AkaunProfilePage() {
   const user = await requireUser();
@@ -38,33 +39,33 @@ export default async function AkaunProfilePage() {
       {/* Info peribadi */}
       <section className="rounded-2xl border border-line p-6 md:p-8">
         <h2 className="font-serif text-2xl font-medium text-ink">Profil</h2>
-        <dl className="mt-6 grid gap-5 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs tracking-wide text-ink-soft uppercase">Nama</dt>
-            <dd className="mt-1 text-ink">{displayName}</dd>
-          </div>
-          <div>
-            <dt className="text-xs tracking-wide text-ink-soft uppercase">Email</dt>
-            <dd className="mt-1 text-ink">{user.email}</dd>
-          </div>
-          <div>
-            <dt className="text-xs tracking-wide text-ink-soft uppercase">Peranan</dt>
-            <dd>
-              <span
-                className={
-                  isAdmin
-                    ? "mt-1 inline-flex rounded-full bg-gold px-3 py-1 text-xs font-medium text-card"
-                    : "mt-1 inline-flex rounded-full bg-surface px-3 py-1 text-xs font-medium text-ink"
-                }
-              >
-                {isAdmin ? "Admin" : "Pelanggan"}
-              </span>
-            </dd>
-          </div>
-        </dl>
-        <p className="mt-6 border-t border-line pt-4 text-xs text-ink-soft">
-          Edit nama dan email akan disediakan dalam kemas kini akan datang.
-        </p>
+        <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_1.4fr]">
+          <dl className="grid content-start gap-5 sm:grid-cols-2 lg:grid-cols-1">
+            <div>
+              <dt className="text-xs tracking-wide text-ink-soft uppercase">Nama</dt>
+              <dd className="mt-1 text-ink">{displayName}</dd>
+            </div>
+            <div>
+              <dt className="text-xs tracking-wide text-ink-soft uppercase">Email</dt>
+              <dd className="mt-1 text-ink">{user.email}</dd>
+            </div>
+            <div>
+              <dt className="text-xs tracking-wide text-ink-soft uppercase">Peranan</dt>
+              <dd>
+                <span
+                  className={
+                    isAdmin
+                      ? "mt-1 inline-flex rounded-full bg-gold px-3 py-1 text-xs font-medium text-card"
+                      : "mt-1 inline-flex rounded-full bg-surface px-3 py-1 text-xs font-medium text-ink"
+                  }
+                >
+                  {isAdmin ? "Admin" : "Pelanggan"}
+                </span>
+              </dd>
+            </div>
+          </dl>
+          <ProfilForm name={displayName} email={user.email} />
+        </div>
       </section>
 
       {/* Ringkasan */}
