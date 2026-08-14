@@ -55,6 +55,7 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
   });
 
   const methods = shippingMethods();
+  // eslint-disable-next-line react-hooks/incompatible-library -- watch() react-hook-form memang tak boleh dimemoize (false positive React Compiler)
   const state = watch("shippingAddress.state");
   const shippingMethod = watch("shippingMethod");
   const address = watch("shippingAddress");

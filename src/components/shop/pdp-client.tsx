@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 
-import { cn } from "@/lib/utils";
 import type { ProductVariantDetail } from "@/server/services/product.service";
 
 import { AddToCart } from "./add-to-cart";

@@ -30,13 +30,14 @@ export function WishlistButton({
   const [active, setActive] = useState(false);
   const [pending, setPending] = useState(false);
 
+  // active hanya bermakna bila user log masuk; derive semasa render
+  // (React Compiler: elak setState synchronous dalam effect).
+  const isActive = session?.user ? active : false;
+
   // Sync state awal: jika log masuk, semak produk dalam wishlist user.
   useEffect(() => {
     let cancelled = false;
-    if (!session?.user) {
-      setActive(false);
-      return;
-    }
+    if (!session?.user) return;
     fetch("/api/wishlist", { cache: "no-store" })
       .then((response) => {
         if (!response.ok) return null;
@@ -66,7 +67,7 @@ export function WishlistButton({
 
     setPending(true);
     try {
-      if (active) {
+      if (isActive) {
         const response = await fetch(`/api/wishlist/${productId}`, { method: "DELETE" });
         if (!response.ok && response.status !== 204) {
           throw new Error("Gagal mengemas kini wishlist.");
@@ -104,11 +105,11 @@ export function WishlistButton({
       type="button"
       onClick={() => void handleToggle()}
       disabled={pending || isPending}
-      aria-label={active ? "Buang dari wishlist" : "Simpan ke wishlist"}
-      aria-pressed={active}
+      aria-label={isActive ? "Buang dari wishlist" : "Simpan ke wishlist"}
+      aria-pressed={isActive}
       className={cn(
         "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors",
-        active
+        isActive
           ? "border-gold bg-gold-tint text-gold-deep"
           : "border-line text-ink-soft hover:border-gold hover:text-gold-deep",
         "disabled:cursor-not-allowed disabled:opacity-60",
@@ -116,7 +117,7 @@ export function WishlistButton({
       )}
       {...motionProps}
     >
-      <Heart size={20} weight={active ? "fill" : "regular"} />
+      <Heart size={20} weight={isActive ? "fill" : "regular"} />
     </motion.button>
   );
 }

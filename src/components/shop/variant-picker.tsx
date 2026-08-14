@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import type { ProductVariantDetail } from "@/server/services/product.service";
@@ -41,13 +41,17 @@ export function VariantPicker({ variants, value, onChange }: VariantPickerProps)
   const [color, setColor] = useState<string | null>(null);
   const [size, setSize] = useState<string | null>(null);
 
-  // Sinkronkan warna/saiz bila value berubah dari luar (cth. reset parent).
-  useEffect(() => {
+  // Sync warna/saiz bila value berubah dari luar (cth. reset parent).
+  // "Adjust state during render" (React docs - You Might Not Need an Effect):
+  // setState semasa render dibenarkan untuk state yang derive dari prop;
+  // React re-render serta-merta sebelum commit, jadi tiada cascading render.
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
     const selected = variants.find((variant) => variant.id === value) ?? null;
     setColor(selected?.color ?? null);
     setSize(selected?.size ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }
 
   const colors = [...new Set(variants.map((v) => v.color).filter((c): c is string => Boolean(c)))];
   const sizes = [...new Set(variants.map((v) => v.size).filter((s): s is string => Boolean(s)))];

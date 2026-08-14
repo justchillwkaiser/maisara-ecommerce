@@ -44,8 +44,6 @@ const CHECKOUT_CART_INCLUDE = {
   },
 } satisfies Prisma.CartItemInclude;
 
-type CheckoutCartRow = Prisma.CartItemGetPayload<{ include: typeof CHECKOUT_CART_INCLUDE }>;
-
 /**
  * Cipta order dari cart user (API.md section 4 - POST /api/orders).
  * 1. Ambil cart user (hanya produk aktif).

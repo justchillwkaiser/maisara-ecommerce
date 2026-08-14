@@ -90,6 +90,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "variants" });
+  // eslint-disable-next-line react-hooks/incompatible-library -- watch() react-hook-form memang tak boleh dimemoize (false positive React Compiler)
   const name = watch("name");
   const slug = watch("slug") ?? "";
   const slugPreview = slug.trim() ? slug.trim() : slugify(name ?? "");

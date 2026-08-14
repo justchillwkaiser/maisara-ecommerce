@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LoginForm } from "@/components/auth/login-form";
+
+export const metadata: Metadata = {
+  title: "Log Masuk",
+  description:
+    "Log masuk ke akaun Maisara untuk meneruskan membeli-belah dan mengurus pesanan.",
+};
 
 interface LoginPageProps {
   searchParams: Promise<{ next?: string }>;

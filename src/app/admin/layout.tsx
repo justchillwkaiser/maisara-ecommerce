@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/admin-nav";
 import { requireAdmin } from "@/server/guards";
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Admin",
+  robots: { index: false, follow: false },
+};
 
 /**
  * Layout admin (UX.md section 4, DESIGN.md 8 - Admin Panel).

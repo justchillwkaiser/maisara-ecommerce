@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ShoppingBag } from "@phosphor-icons/react/dist/ssr";
@@ -8,16 +9,19 @@ import { requireUser } from "@/server/guards";
 import { getCart } from "@/server/services/cart.service";
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: "Checkout",
+  robots: { index: false, follow: false },
+};
+
 /**
  * Checkout (DESIGN.md 8, UX.md Flow A).
  * Server component: guard session (redirect /log-masuk), baca cart;
  * jika kosong papar empty state (halaman /cart dibina task akaun).
  */
 export default async function CheckoutPage() {
-  let userId: string;
   try {
-    const user = await requireUser();
-    userId = user.id;
+    await requireUser();
   } catch {
     redirect("/log-masuk?next=/checkout");
   }

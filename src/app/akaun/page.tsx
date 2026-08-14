@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { Heart, Package } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
 import { db } from "@/lib/db";
 import { requireUser } from "@/server/guards";
+
+export const metadata: Metadata = {
+  title: "Akaun Saya",
+  robots: { index: false, follow: false },
+};
 
 /**
  * Profil akaun (UX.md section 4, DESIGN.md 8 - Akaun).

@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { RegisterForm } from "@/components/auth/register-form";
+
+export const metadata: Metadata = {
+  title: "Daftar Akaun",
+  description:
+    "Daftar akaun Maisara untuk menyimpan wishlist, mengurus pesanan dan checkout lebih pantas.",
+};
 
 /**
  * Daftar akaun (UX.md Flow C, DESIGN.md 7.5 - Form).

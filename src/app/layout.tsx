@@ -18,10 +18,68 @@ const sans = Plus_Jakarta_Sans({
   variable: "--font-sans",
 });
 
+/**
+ * Metadata global (SEO): metadataBase penting supaya OG image dan
+ * canonical URL resolve dengan betul. Guna VERCEL_PROJECT_PRODUCTION_URL
+ * bila deploy di Vercel; fallback ke maisara-beta.vercel.app.
+ * Tukar bila domain custom dipasang (backlog P2.5).
+ */
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://maisara-beta.vercel.app");
+
 export const metadata: Metadata = {
-  title: "Maisara | Butik Modest Fashion",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Maisara | Butik Modest Fashion",
+    template: "%s | Maisara",
+  },
   description:
     "Butik modest fashion untuk wanita Malaysia. Sentuhan warisan untuk fesyen harian.",
+  applicationName: "Maisara",
+  keywords: [
+    "Maisara",
+    "modest fashion",
+    "tudung",
+    "baju kurung",
+    "batik",
+    "fesyen wanita",
+    "Malaysia",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "ms_MY",
+    url: "/",
+    siteName: "Maisara",
+    title: "Maisara | Butik Modest Fashion",
+    description:
+      "Butik modest fashion untuk wanita Malaysia. Sentuhan warisan untuk fesyen harian.",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Maisara - Butik Modest Fashion",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Maisara | Butik Modest Fashion",
+    description:
+      "Butik modest fashion untuk wanita Malaysia. Sentuhan warisan untuk fesyen harian.",
+    images: ["/og.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
