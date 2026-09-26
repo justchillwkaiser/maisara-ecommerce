@@ -5,7 +5,7 @@ import { Check, ShoppingBag } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 import { useCart, type CartItemPreview } from "@/components/shared/cart-context";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface AddToCartProps {
   /** Variant terpilih; null = warna/saiz belum lengkap. */
@@ -18,10 +18,12 @@ interface AddToCartProps {
   product?: { name: string; slug: string; price: string; image: string };
   /** Variant terpilih penuh (warna/saiz) untuk paparan segera dalam drawer. */
   variant?: { color: string | null; size: string | null; stock: number } | null;
+  /** Mesej bila variant belum lengkap; PDP menghantar ayat ikut data sebenar. */
+  hint?: string;
 }
 
 /**
- * CTA "Tambah ke Cart" (DESIGN.md 7.2 primary, pill penuh lebar).
+ * CTA "Tambah ke Cart" (spesifikasi 15: add to bag sebagai tindakan utama).
  * Optimistic UI: jika `product` + `variant` disediakan, UI (badge + drawer)
  * update serta-merta, kemudian POST /api/cart untuk pengesahan server.
  * Gagal -> rollback + toast mesej ApiError dari server.
@@ -33,6 +35,7 @@ export function AddToCart({
   disabled = false,
   product,
   variant,
+  hint,
 }: AddToCartProps) {
   const { add } = useCart();
   const [pending, setPending] = useState(false);
@@ -73,26 +76,22 @@ export function AddToCart({
 
   return (
     <div>
-      <button
+      <Button
         type="button"
+        size="lg"
         onClick={() => void handleAdd()}
         disabled={isDisabled}
-        className={cn(
-          "flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gold px-6 text-sm font-medium text-card transition-all",
-          "hover:bg-gold-deep active:scale-[0.98]",
-          "focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:outline-none",
-          "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gold disabled:active:scale-100",
-        )}
+        className="w-full"
       >
-        {added ? <Check size={18} weight="bold" /> : <ShoppingBag size={18} />}
+        {added ? <Check weight="bold" aria-hidden="true" /> : <ShoppingBag aria-hidden="true" />}
         {added ? "Ditambah" : pending ? "Menambah..." : "Tambah ke Cart"}
-      </button>
-      {noVariant && (
-        <p className="mt-2 text-center text-xs text-ink-soft">Pilih warna dan saiz dahulu</p>
-      )}
-      {outOfStock && (
-        <p className="mt-2 text-center text-xs text-ink-soft">Habis Stok</p>
-      )}
+      </Button>
+      {noVariant && hint ? (
+        <p className="mt-3 text-body-sm text-cocoa">{hint}</p>
+      ) : null}
+      {outOfStock ? (
+        <p className="mt-3 text-body-sm text-cocoa">Habis stok untuk pilihan ini.</p>
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { safeRelativePath } from "@/lib/safe-redirect";
 
 export const metadata: Metadata = {
   title: "Log Masuk",
@@ -10,51 +11,55 @@ export const metadata: Metadata = {
 };
 
 interface LoginPageProps {
-  searchParams: Promise<{ next?: string; reset?: string }>;
+  // Parameter query boleh berulang (?next=a&next=b), jadi jenisnya mesti
+  // meliputi tatasusunan: nilai bukan-string disahkan sebelum digunakan.
+  searchParams: Promise<{ next?: string | string[]; reset?: string | string[] }>;
 }
 
 /**
  * Log masuk (UX.md Flow C, DESIGN.md 7.5 - Form).
- * Layout tengah max-w-md, tajuk serif "Selamat Kembali". Selepas sign in,
- * redirect ke callbackUrl (biasanya halaman yang diminta tadi).
- * ?reset=1 (selepas set semula kata laluan) memaparkan mesej success.
+ * Lajur sempit di tengah: eyebrow mono, tajuk serif, medan dipisah garis halus.
+ * Selepas sign in, redirect ke callbackUrl (biasanya halaman yang diminta tadi).
+ * ?reset=1 (selepas set semula kata laluan) memaparkan mesej kejayaan.
  */
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { next, reset } = await searchParams;
-  const callbackUrl = next && next.startsWith("/") ? next : "/";
+  // `next` datang daripada query string, jadi ia input tidak dipercayai:
+  // disahkan sebagai laluan relatif origin-sama sebelum digunakan.
+  const callbackUrl = safeRelativePath(next, "/");
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-16 md:py-24">
-      <div className="text-center">
-        <p className="text-xs tracking-wide text-ink-soft uppercase">Akaun Maisara</p>
-        <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight text-ink md:text-4xl">
-          Selamat Kembali
-        </h1>
-        <p className="mt-3 text-sm text-ink-soft">
-          Log masuk untuk meneruskan membeli-belah di Maisara.
+    <div className="shell py-16 md:py-24">
+      <div className="mx-auto flex w-full max-w-[26rem] flex-col">
+        <header className="text-center">
+          <p className="meta-label text-cocoa">Akaun Maisara</p>
+          <h1 className="mt-4 font-display text-h2 text-ink">Selamat Kembali</h1>
+          <p className="mt-4 text-body-sm text-cocoa">
+            Log masuk untuk meneruskan membeli-belah di Maisara.
+          </p>
+        </header>
+
+        {reset === "1" && (
+          <p
+            role="alert"
+            className="mt-8 border border-line-strong bg-bone px-4 py-3 text-center text-body-sm text-ink"
+          >
+            Kata laluan berjaya diset semula. Sila log masuk.
+          </p>
+        )}
+
+        <LoginForm callbackUrl={callbackUrl} />
+
+        <p className="mt-10 text-center text-body-sm text-cocoa">
+          Belum ada akaun?{" "}
+          <Link
+            href="/daftar"
+            className="text-ink underline underline-offset-4 transition-colors duration-(--dur-fast) hover:text-cocoa"
+          >
+            Daftar
+          </Link>
         </p>
       </div>
-
-      {reset === "1" && (
-        <div
-          role="alert"
-          className="mt-6 rounded-2xl border border-gold/40 bg-gold-tint px-4 py-3 text-center text-sm text-ink"
-        >
-          Kata laluan berjaya diset semula. Sila log masuk.
-        </div>
-      )}
-
-      <LoginForm callbackUrl={callbackUrl} />
-
-      <p className="mt-8 text-center text-sm text-ink-soft">
-        Belum ada akaun?{" "}
-        <Link
-          href="/daftar"
-          className="font-medium text-gold-deep transition-colors hover:text-gold"
-        >
-          Daftar
-        </Link>
-      </p>
     </div>
   );
 }

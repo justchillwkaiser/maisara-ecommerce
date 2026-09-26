@@ -9,10 +9,10 @@ export default async function AdminOrderPage() {
   const orders = await listAllOrders();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="font-serif text-2xl font-medium text-ink">Order</h2>
-        <p className="mt-1 text-sm text-ink-soft">
+        <h2 className="font-display text-h3 text-ink">Order</h2>
+        <p className="mt-2 text-body-sm text-cocoa">
           {orders.length} order keseluruhan
         </p>
       </div>

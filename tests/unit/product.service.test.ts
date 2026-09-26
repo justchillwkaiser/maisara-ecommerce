@@ -72,11 +72,12 @@ describe("listProducts", () => {
           slug: "tudung-bawal-premium",
           price: "49.00",
           image: "https://cdn.example.com/tudung-1.jpg",
+          hoverImage: "https://cdn.example.com/tudung-2.jpg",
           category: { name: "Tudung", slug: "tudung" },
           colors: ["Sage", "Ivory"],
           sizes: [],
           minStock: 3,
-          quickAddVariantId: "v1",
+          quickAddVariant: { id: "v1", color: "Sage", size: null, stock: 3 },
           avgRating: 14 / 3,
           reviewCount: 3,
         },
@@ -337,8 +338,9 @@ describe("getProductBySlug", () => {
     expect(mocks.productFindUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { slug: "tudung-bawal-premium" },
-        include: expect.objectContaining({
-          category: true,
+        select: expect.objectContaining({
+          id: true,
+          description: true,
           variants: expect.objectContaining({ orderBy: { color: "asc" } }),
           reviews: expect.objectContaining({
             where: { status: "APPROVED" },
@@ -380,7 +382,7 @@ describe("getProductBySlug", () => {
 
     await getProductBySlug("tudung-bawal-premium");
 
-    const include = mocks.productFindUnique.mock.calls[0][0].include;
-    expect(include.reviews.where.status).toBe("APPROVED");
+    const select = mocks.productFindUnique.mock.calls[0][0].select;
+    expect(select.reviews.where.status).toBe("APPROVED");
   });
 });

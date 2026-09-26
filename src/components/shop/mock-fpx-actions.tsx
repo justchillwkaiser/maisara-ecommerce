@@ -7,11 +7,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 /**
- * Aksi simulasi FPX (DESIGN.md 8, UX.md Flow B).
+ * Aksi simulasi FPX (API.md section 5, UX.md Flow B).
  * "Bayaran Berjaya" -> POST /api/payments/callback (paid) -> /order/success.
  * "Bayaran Gagal" -> POST /api/payments/callback (failed) -> /order/success?status=failed.
  * Jika order FAILED (cuba semula): POST /api/payments/[orderId] untuk
  * reference baru, kemudian kembali ke halaman pembayaran.
+ * Restyle sahaja — aliran dan endpoint kekal sama.
  */
 
 interface MockFpxActionsProps {
@@ -43,7 +44,10 @@ export function MockFpxActions({ orderId, reference, paymentStatus }: MockFpxAct
         );
         return;
       }
-      if (status === "paid") {
+      // Server ialah sumber kebenaran: callback yang dimainkan semula boleh
+      // memulangkan status stor yang berbeza daripada butang yang ditekan.
+      const result = (await response.json()) as { status: "paid" | "failed" };
+      if (result.status === "paid") {
         router.push(`/order/success?order=${orderId}`);
       } else {
         router.push(`/order/success?status=failed&order=${orderId}`);
@@ -84,13 +88,20 @@ export function MockFpxActions({ orderId, reference, paymentStatus }: MockFpxAct
 
   if (paymentStatus === "FAILED") {
     return (
-      <div className="mt-6 rounded-xl border border-danger/30 bg-danger/5 p-4 text-center">
-        <p className="text-sm font-medium text-danger">Pembayaran tidak berjaya</p>
-        <p className="mt-1 text-xs text-ink-soft">
+      <div className="mt-8 border border-oxblood/40 bg-bone p-5">
+        <p className="meta-label text-oxblood">Pembayaran tidak berjaya</p>
+        <p className="mt-2 text-body-sm text-cocoa">
           Jangan risau, jumlah tidak akan dicaj. Anda boleh cuba semula.
         </p>
-        <Button type="button" size="lg" className="mt-4 w-full" disabled={pending} onClick={() => void retryPayment()}>
-          {pending ? "Memproses..." : "Cuba Semula"}
+        <Button
+          type="button"
+          size="lg"
+          className="mt-5 w-full"
+          disabled={pending}
+          aria-busy={pending || undefined}
+          onClick={() => void retryPayment()}
+        >
+          {pending ? "Memproses…" : "Cuba Semula"}
         </Button>
       </div>
     );
@@ -103,15 +114,16 @@ export function MockFpxActions({ orderId, reference, paymentStatus }: MockFpxAct
         size="lg"
         className="w-full"
         disabled={pending || !reference}
+        aria-busy={pending || undefined}
         onClick={() => void sendCallback("paid")}
       >
-        {pending ? "Memproses..." : "Bayaran Berjaya"}
+        {pending ? "Memproses…" : "Bayaran Berjaya"}
       </Button>
       <Button
         type="button"
         variant="outline"
         size="lg"
-        className="w-full border-danger/40 text-danger hover:border-danger hover:bg-danger/5 hover:text-danger"
+        className="w-full border-oxblood/40 text-oxblood hover:border-oxblood hover:bg-oxblood/5 hover:text-oxblood"
         disabled={pending || !reference}
         onClick={() => void sendCallback("failed")}
       >

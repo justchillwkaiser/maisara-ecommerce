@@ -18,35 +18,37 @@ export default async function AdminStokPage({ searchParams }: AdminStokPageProps
   const lowOnlyActive = lowOnly === "true";
   const rows = await listStockVariants(lowOnlyActive);
 
+  const tabs = [
+    { href: "/admin/stok", label: "Semua", active: !lowOnlyActive },
+    { href: "/admin/stok?lowOnly=true", label: "Stok Rendah", active: lowOnlyActive },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-2xl font-medium text-ink">Stok</h2>
-          <p className="mt-1 text-sm text-ink-soft">
-            {rows.length} variants {lowOnlyActive ? "(stok rendah)" : "keseluruhan"}
-          </p>
-        </div>
-        <div className="flex gap-1 rounded-full border border-line bg-card p-1">
+    <div className="space-y-8">
+      <div>
+        <h2 className="font-display text-h3 text-ink">Stok</h2>
+        <p className="mt-2 text-body-sm text-cocoa">
+          {rows.length} variants {lowOnlyActive ? "(stok rendah)" : "keseluruhan"}
+        </p>
+      </div>
+
+      {/* Penapis status: rel garis halus, bukan pill. */}
+      <div className="flex gap-6 border-b border-line">
+        {tabs.map((tab) => (
           <Link
-            href="/admin/stok"
+            key={tab.href}
+            href={tab.href}
+            aria-current={tab.active ? "page" : undefined}
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              !lowOnlyActive ? "bg-gold-tint text-gold-deep" : "text-ink-soft hover:text-ink",
+              "-mb-px border-b-2 px-1 pb-3 text-body-sm transition-colors duration-(--dur-fast)",
+              tab.active
+                ? "border-ink font-medium text-ink"
+                : "border-transparent text-cocoa hover:border-line-strong hover:text-ink",
             )}
           >
-            Semua
+            {tab.label}
           </Link>
-          <Link
-            href="/admin/stok?lowOnly=true"
-            className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              lowOnlyActive ? "bg-gold-tint text-gold-deep" : "text-ink-soft hover:text-ink",
-            )}
-          >
-            Stok Rendah
-          </Link>
-        </div>
+        ))}
       </div>
 
       <AdminStockTable rows={rows} />

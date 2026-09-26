@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   cartItemFindMany: vi.fn(),
+  cartItemDeleteMany: vi.fn(),
   variantFindUnique: vi.fn(),
   variantUpdateMany: vi.fn(),
   orderCreate: vi.fn(),
@@ -12,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   paymentUpsert: vi.fn(),
   paymentFindUnique: vi.fn(),
   paymentUpdate: vi.fn(),
+  paymentUpdateMany: vi.fn(),
   transaction: vi.fn(),
   providerCreatePayment: vi.fn(),
   providerHandleCallback: vi.fn(),
@@ -20,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({
   db: {
-    cartItem: { findMany: mocks.cartItemFindMany },
+    cartItem: { findMany: mocks.cartItemFindMany, deleteMany: mocks.cartItemDeleteMany },
     productVariant: { findUnique: mocks.variantFindUnique, updateMany: mocks.variantUpdateMany },
     order: {
       create: mocks.orderCreate,
@@ -33,6 +35,7 @@ vi.mock("@/lib/db", () => ({
       upsert: mocks.paymentUpsert,
       findUnique: mocks.paymentFindUnique,
       update: mocks.paymentUpdate,
+      updateMany: mocks.paymentUpdateMany,
     },
     $transaction: mocks.transaction,
   },
@@ -92,13 +95,21 @@ const validInput: CheckoutInput = {
 
 beforeEach(() => {
   for (const fn of Object.values(mocks)) fn.mockReset();
+  // Lalai: klaim baris cart berjaya (cart satu item) + CAS payment menang.
+  mocks.cartItemDeleteMany.mockResolvedValue({ count: 1 });
+  mocks.paymentUpdateMany.mockResolvedValue({ count: 1 });
   mocks.transaction.mockImplementation((fn: (tx: unknown) => Promise<unknown>) =>
     fn({
+      cartItem: { deleteMany: mocks.cartItemDeleteMany },
       productVariant: {
         findUnique: mocks.variantFindUnique,
         updateMany: mocks.variantUpdateMany,
       },
-      order: { create: mocks.orderCreate },
+      order: { create: mocks.orderCreate, update: mocks.orderUpdate },
+      payment: {
+        updateMany: mocks.paymentUpdateMany,
+        findUnique: mocks.paymentFindUnique,
+      },
     }),
   );
 });
@@ -123,6 +134,10 @@ describe("createOrder", () => {
       redirectUrl: "/pembayaran/order-1",
     });
 
+    // Baris cart diklaim + dipadam dalam transaction (idempotensi checkout)
+    expect(mocks.cartItemDeleteMany).toHaveBeenCalledWith({
+      where: { userId: "user-1", id: { in: ["ci1"] } },
+    });
     // Stok dikurangkan via updateMany (race-safe, stock >= qty)
     expect(mocks.variantUpdateMany).toHaveBeenCalledWith({
       where: { id: "v1", stock: { gte: 2 } },
@@ -188,6 +203,7 @@ describe("createOrder", () => {
         },
       }),
     ]);
+    mocks.cartItemDeleteMany.mockResolvedValue({ count: 2 });
     mocks.variantFindUnique
       .mockResolvedValueOnce({ id: "v1", stock: 10 })
       .mockResolvedValueOnce({ id: "v2", stock: 8 });
@@ -216,6 +232,25 @@ describe("createOrder", () => {
       }),
     );
     expect(mocks.orderCreate.mock.calls[0][0].data.items.create).toHaveLength(2);
+    // Kedua-dua baris cart diklaim.
+    expect(mocks.cartItemDeleteMany).toHaveBeenCalledWith({
+      where: { userId: "user-1", id: { in: ["ci1", "ci2"] } },
+    });
+  });
+
+  it("checkout serentak kedua (baris cart sudah diklaim) -> CART_CHANGED 409, tiada order/stok kedua", async () => {
+    mocks.cartItemFindMany.mockResolvedValue([cartRow()]);
+    mocks.variantFindUnique.mockResolvedValue({ id: "v1", stock: 10 });
+    // Checkout lain sudah padam baris cart yang sama.
+    mocks.cartItemDeleteMany.mockResolvedValue({ count: 0 });
+
+    await expect(createOrder("user-1", validInput)).rejects.toMatchObject({
+      code: "CART_CHANGED",
+      status: 409,
+    });
+    expect(mocks.variantUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+    expect(mocks.paymentCreate).not.toHaveBeenCalled();
   });
 
   it("cart kosong -> ApiError EMPTY_CART 400, tiada transaction", async () => {
@@ -350,6 +385,7 @@ describe("initiatePayment", () => {
     mocks.orderFindUnique.mockResolvedValue({
       id: "order-1",
       userId: "user-1",
+      status: "PENDING",
       total: price("87.80"),
       paymentStatus: "PAID",
       payment: { url: "/pembayaran/order-1", reference: "MOCK-siap" },
@@ -360,10 +396,28 @@ describe("initiatePayment", () => {
       status: 422,
     });
   });
+
+  it("order CANCELLED -> PAYMENT_INVALID 422, tiada payment baru", async () => {
+    mocks.orderFindUnique.mockResolvedValue({
+      id: "order-1",
+      userId: "user-1",
+      status: "CANCELLED",
+      total: price("87.80"),
+      paymentStatus: "FAILED",
+      payment: { url: "/pembayaran/order-1", reference: "MOCK-batal" },
+    });
+
+    await expect(initiatePayment("order-1", "user-1")).rejects.toMatchObject({
+      code: "PAYMENT_INVALID",
+      status: 422,
+    });
+    expect(mocks.providerCreatePayment).not.toHaveBeenCalled();
+    expect(mocks.paymentUpsert).not.toHaveBeenCalled();
+  });
 });
 
 describe("handlePaymentCallback", () => {
-  it("paid -> Payment PAID + Order.paymentStatus PAID, return { status, reference }", async () => {
+  it("paid -> Payment PAID + Order.paymentStatus PAID (CAS dari PENDING), return status autoritatif", async () => {
     mocks.providerHandleCallback.mockResolvedValue({ status: "paid", reference: "MOCK-abc" });
     mocks.paymentFindUnique.mockResolvedValue({
       id: "pay-1",
@@ -371,14 +425,14 @@ describe("handlePaymentCallback", () => {
       reference: "MOCK-abc",
       status: "PENDING",
     });
-    mocks.paymentUpdate.mockResolvedValue({});
     mocks.orderUpdate.mockResolvedValue({});
 
     const result = await handlePaymentCallback({ reference: "MOCK-abc", status: "paid" });
 
     expect(result).toEqual({ status: "paid", reference: "MOCK-abc" });
-    expect(mocks.paymentUpdate).toHaveBeenCalledWith({
-      where: { id: "pay-1" },
+    // Update bersyarat: hanya baris yang masih PENDING boleh bertukar status.
+    expect(mocks.paymentUpdateMany).toHaveBeenCalledWith({
+      where: { id: "pay-1", status: "PENDING" },
       data: { status: "PAID" },
     });
     expect(mocks.orderUpdate).toHaveBeenCalledWith({
@@ -394,13 +448,13 @@ describe("handlePaymentCallback", () => {
       orderId: "order-1",
       status: "PENDING",
     });
-    mocks.paymentUpdate.mockResolvedValue({});
     mocks.orderUpdate.mockResolvedValue({});
 
-    await handlePaymentCallback({ reference: "MOCK-abc", status: "failed" });
+    const result = await handlePaymentCallback({ reference: "MOCK-abc", status: "failed" });
 
-    expect(mocks.paymentUpdate).toHaveBeenCalledWith({
-      where: { id: "pay-1" },
+    expect(result).toEqual({ status: "failed", reference: "MOCK-abc" });
+    expect(mocks.paymentUpdateMany).toHaveBeenCalledWith({
+      where: { id: "pay-1", status: "PENDING" },
       data: { status: "FAILED" },
     });
     expect(mocks.orderUpdate).toHaveBeenCalledWith({
@@ -409,32 +463,51 @@ describe("handlePaymentCallback", () => {
     });
   });
 
-  it("idempotent: panggilan kedua dengan status sama -> tiada update kedua", async () => {
+  it("idempotent: callback pendua tidak menulis kedua kali dan pulangkan status stor", async () => {
     mocks.providerHandleCallback.mockResolvedValue({ status: "paid", reference: "MOCK-abc" });
     mocks.paymentFindUnique
       .mockResolvedValueOnce({ id: "pay-1", orderId: "order-1", status: "PENDING" })
       .mockResolvedValueOnce({ id: "pay-1", orderId: "order-1", status: "PAID" });
-    mocks.paymentUpdate.mockResolvedValue({});
     mocks.orderUpdate.mockResolvedValue({});
+    // Panggilan pertama menang CAS; panggilan kedua mendapati baris sudah PAID.
+    mocks.paymentUpdateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
 
-    await handlePaymentCallback({ reference: "MOCK-abc", status: "paid" });
-    await handlePaymentCallback({ reference: "MOCK-abc", status: "paid" });
+    const first = await handlePaymentCallback({ reference: "MOCK-abc", status: "paid" });
+    const second = await handlePaymentCallback({ reference: "MOCK-abc", status: "paid" });
 
-    expect(mocks.paymentUpdate).toHaveBeenCalledTimes(1);
+    expect(first).toEqual({ status: "paid", reference: "MOCK-abc" });
+    expect(second).toEqual({ status: "paid", reference: "MOCK-abc" });
+    expect(mocks.paymentUpdateMany).toHaveBeenCalledTimes(2);
+    // Order hanya dikemas kini sekali (callback pendua tiada kesan).
     expect(mocks.orderUpdate).toHaveBeenCalledTimes(1);
   });
 
-  it("status berbeza pada payment selesai -> tidak mengubah status asal (first-wins)", async () => {
+  it("callback 'failed' selepas PAID -> status stor (paid) dipulangkan, tiada perubahan", async () => {
     mocks.providerHandleCallback.mockResolvedValue({ status: "failed", reference: "MOCK-abc" });
-    mocks.paymentFindUnique.mockResolvedValue({
-      id: "pay-1",
-      orderId: "order-1",
-      status: "PAID",
-    });
+    mocks.paymentFindUnique
+      .mockResolvedValueOnce({ id: "pay-1", orderId: "order-1", status: "PAID" })
+      .mockResolvedValueOnce({ id: "pay-1", orderId: "order-1", status: "PAID" });
+    mocks.paymentUpdateMany.mockResolvedValue({ count: 0 });
 
-    await handlePaymentCallback({ reference: "MOCK-abc", status: "failed" });
+    const result = await handlePaymentCallback({ reference: "MOCK-abc", status: "failed" });
 
-    expect(mocks.paymentUpdate).not.toHaveBeenCalled();
+    // Pengguna tidak boleh ditunjukkan "gagal" untuk order yang sudah dibayar.
+    expect(result).toEqual({ status: "paid", reference: "MOCK-abc" });
+    expect(mocks.orderUpdate).not.toHaveBeenCalled();
+  });
+
+  it("dua callback serentak berbeza status -> yang kalah CAS pulangkan status pemenang", async () => {
+    mocks.providerHandleCallback.mockResolvedValue({ status: "failed", reference: "MOCK-abc" });
+    mocks.paymentFindUnique
+      .mockResolvedValueOnce({ id: "pay-1", orderId: "order-1", status: "PENDING" })
+      .mockResolvedValueOnce({ id: "pay-1", orderId: "order-1", status: "PAID" });
+    mocks.paymentUpdateMany.mockResolvedValue({ count: 0 });
+
+    const result = await handlePaymentCallback({ reference: "MOCK-abc", status: "failed" });
+
+    expect(result).toEqual({ status: "paid", reference: "MOCK-abc" });
     expect(mocks.orderUpdate).not.toHaveBeenCalled();
   });
 
@@ -446,7 +519,7 @@ describe("handlePaymentCallback", () => {
     await expect(
       handlePaymentCallback({ reference: "MOCK-nope", status: "paid" }),
     ).rejects.toMatchObject({ code: "PAYMENT_INVALID", status: 422 });
-    expect(mocks.paymentUpdate).not.toHaveBeenCalled();
+    expect(mocks.paymentUpdateMany).not.toHaveBeenCalled();
     expect(mocks.orderUpdate).not.toHaveBeenCalled();
   });
 
@@ -457,6 +530,6 @@ describe("handlePaymentCallback", () => {
     await expect(
       handlePaymentCallback({ reference: "MOCK-abc", status: "paid" }),
     ).rejects.toMatchObject({ code: "PAYMENT_INVALID", status: 422 });
-    expect(mocks.paymentUpdate).not.toHaveBeenCalled();
+    expect(mocks.paymentUpdateMany).not.toHaveBeenCalled();
   });
 });

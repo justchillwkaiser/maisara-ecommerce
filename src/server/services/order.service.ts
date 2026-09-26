@@ -48,8 +48,10 @@ const CHECKOUT_CART_INCLUDE = {
  * Cipta order dari cart user (API.md section 4 - POST /api/orders).
  * 1. Ambil cart user (hanya produk aktif).
  * 2. Kira subtotal/shipping/total DARI DB.
- * 3. Transaction: semak stok, kurangkan stok (updateMany stock >= qty -
- *    elak race), cipta Order + OrderItem snapshot.
+ * 3. Transaction: klaim + padam baris cart (beg dikosongkan), semak stok,
+ *    kurangkan stok (updateMany stock >= qty - elak race), cipta Order +
+ *    OrderItem snapshot. Padam-dahulu menjadikan checkout idempotent:
+ *    permintaan kedua yang serentak tidak mencipta order kedua.
  * 4. Initiate payment (provider) + cipta Payment row PENDING.
  */
 export async function createOrder(
@@ -74,6 +76,20 @@ export async function createOrder(
   const total = subtotal.add(new Prisma.Decimal(shippingFee));
 
   const orderId = await db.$transaction(async (tx) => {
+    // Klaim baris cart: padam dahulu, iaitu compare-and-swap. Checkout
+    // serentak kedua (double-click / dua tab) padam 0 baris dan dibatalkan,
+    // jadi tiada order kedua dan stok tidak ditolak dua kali. Rollback
+    // memulihkan baris cart jika langkah berikutnya gagal.
+    const claimed = await tx.cartItem.deleteMany({
+      where: { userId, id: { in: items.map((item) => item.id) } },
+    });
+    if (claimed.count !== items.length) {
+      throw new ApiError(
+        "CART_CHANGED",
+        "Cart anda telah berubah. Sila semak beg anda dan cuba lagi.",
+        409,
+      );
+    }
     // Semak stok setiap variant (mesej jelas dengan nama produk).
     for (const item of items) {
       const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });

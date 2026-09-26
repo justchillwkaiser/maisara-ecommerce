@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { CheckCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
 export const dynamic = "force-dynamic";
 
 interface OrderSuccessPageProps {
@@ -14,9 +16,10 @@ function shortOrderId(orderId: string | undefined): string {
 }
 
 /**
- * Pengesahan order (UX.md Flow A & B, DESIGN.md 8).
+ * Pengesahan order (UX.md Flow A & B).
  * ?status=failed -> mesej pembayaran gagal + Cuba Semula.
  * Selain itu -> terima kasih + status menunggu pemprosesan.
+ * Restyle sahaja — id order ringkas dan status sebenar kekal sama.
  */
 export default async function OrderSuccessPage({ searchParams }: OrderSuccessPageProps) {
   const { order, status } = await searchParams;
@@ -25,22 +28,23 @@ export default async function OrderSuccessPage({ searchParams }: OrderSuccessPag
 
   if (isFailed) {
     return (
-      <div className="mx-auto flex w-full max-w-lg flex-col items-center px-4 py-20 text-center">
-        <div className="flex size-16 items-center justify-center rounded-full bg-danger/10 text-danger">
-          <XCircle size={30} />
-        </div>
-        <h1 className="mt-6 font-serif text-3xl text-ink">Pembayaran tidak berjaya</h1>
-        <p className="mt-3 text-sm text-ink-soft">
+      <div className="shell flex flex-col items-center py-(--space-section) text-center">
+        <span className="flex size-14 items-center justify-center rounded-xs border border-oxblood/40 text-oxblood">
+          <XCircle size={26} aria-hidden="true" />
+        </span>
+        <h1 className="mt-8 text-h1 text-ink">Pembayaran tidak berjaya</h1>
+        <p className="mt-5 max-w-md text-body-lg text-cocoa">
           Jangan risau, jumlah tidak akan dicaj. Anda boleh cuba semula pembayaran
           {shortId ? (
             <>
               {" "}
-              untuk order <span className="font-medium text-ink">#{shortId}</span>
+              untuk order{" "}
+              <span className="font-mono text-ink">#{shortId}</span>
             </>
           ) : null}
           .
         </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           {order && (
             <Button asChild size="lg">
               <Link href={`/pembayaran/${order}`}>Cuba Semula</Link>
@@ -55,25 +59,32 @@ export default async function OrderSuccessPage({ searchParams }: OrderSuccessPag
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col items-center px-4 py-20 text-center">
-      <div className="flex size-16 items-center justify-center rounded-full bg-gold-tint text-gold">
-        <CheckCircle size={30} />
-      </div>
-      <h1 className="mt-6 font-serif text-3xl text-ink">Terima kasih!</h1>
-      <p className="mt-2 text-sm text-ink-soft">Order anda telah diterima.</p>
-      {shortId && (
-        <p className="mt-4 rounded-full border border-line px-4 py-1.5 text-sm text-ink tabular-nums">
-          No. Order <span className="font-medium">#{shortId}</span>
+    <div className="shell flex flex-col items-center py-(--space-section) text-center">
+      <span className="flex size-14 items-center justify-center rounded-xs border border-line bg-bone text-ink">
+        <CheckCircle size={26} aria-hidden="true" />
+      </span>
+      <h1 className="mt-8 text-h1 text-ink">Terima kasih!</h1>
+      <p className="mt-5 text-body-lg text-cocoa">Order anda telah diterima.</p>
+
+      {shortId ? (
+        <p className="mt-8 inline-flex items-baseline gap-3 rounded-xs border border-line px-4 py-2.5">
+          <span className="meta-label text-cocoa">No. Order</span>
+          <span className="font-mono text-body-sm tabular-nums text-ink">
+            #{shortId}
+          </span>
         </p>
-      )}
-      <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-gold-tint/60 px-4 py-1.5 text-xs font-medium text-gold-deep">
+      ) : null}
+
+      <Badge variant="muted" className="mt-4">
         Menunggu pemprosesan
-      </p>
-      <p className="mt-4 max-w-sm text-sm text-ink-soft">
+      </Badge>
+
+      <p className="mt-5 max-w-md text-body-sm text-cocoa">
         Kami akan mengesahkan pembayaran dan menyediakan pesanan anda. Maklumat
         penuh order boleh dilihat di akaun anda.
       </p>
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+
+      <div className="mt-10 flex flex-col gap-3 sm:flex-row">
         <Button asChild size="lg">
           <Link href="/akaun/order">Lihat Order Saya</Link>
         </Button>

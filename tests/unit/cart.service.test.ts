@@ -4,8 +4,7 @@ const mocks = vi.hoisted(() => ({
   cartItemFindMany: vi.fn(),
   cartItemFindUnique: vi.fn(),
   cartItemUpsert: vi.fn(),
-  cartItemUpdate: vi.fn(),
-  cartItemDelete: vi.fn(),
+  cartItemUpdateMany: vi.fn(),
   cartItemDeleteMany: vi.fn(),
   variantFindUnique: vi.fn(),
   transaction: vi.fn(),
@@ -17,8 +16,7 @@ vi.mock("@/lib/db", () => ({
       findMany: mocks.cartItemFindMany,
       findUnique: mocks.cartItemFindUnique,
       upsert: mocks.cartItemUpsert,
-      update: mocks.cartItemUpdate,
-      delete: mocks.cartItemDelete,
+      updateMany: mocks.cartItemUpdateMany,
       deleteMany: mocks.cartItemDeleteMany,
     },
     productVariant: { findUnique: mocks.variantFindUnique },
@@ -72,8 +70,7 @@ beforeEach(() => {
   mocks.cartItemFindMany.mockReset();
   mocks.cartItemFindUnique.mockReset();
   mocks.cartItemUpsert.mockReset();
-  mocks.cartItemUpdate.mockReset();
-  mocks.cartItemDelete.mockReset();
+  mocks.cartItemUpdateMany.mockReset();
   mocks.cartItemDeleteMany.mockReset();
   mocks.variantFindUnique.mockReset();
   mocks.transaction.mockReset();
@@ -81,8 +78,8 @@ beforeEach(() => {
     (fn: (tx: unknown) => Promise<unknown>) =>
       fn({
         cartItem: {
-          findUnique: mocks.cartItemFindUnique,
           upsert: mocks.cartItemUpsert,
+          updateMany: mocks.cartItemUpdateMany,
           deleteMany: mocks.cartItemDeleteMany,
         },
       }),
@@ -197,8 +194,7 @@ describe("getCart", () => {
 describe("addToCart", () => {
   it("item baru -> upsert create, return getCart", async () => {
     mocks.variantFindUnique.mockResolvedValue({ id: "v1", stock: 10, product: { isActive: true } });
-    mocks.cartItemFindUnique.mockResolvedValue(null);
-    mocks.cartItemUpsert.mockResolvedValue({});
+    mocks.cartItemUpsert.mockResolvedValue({ id: "ci1", quantity: 2 });
     mocks.cartItemFindMany.mockResolvedValue([]);
 
     const result = await addToCart(ctxGuest, { variantId: "v1", quantity: 2 });
@@ -209,15 +205,17 @@ describe("addToCart", () => {
     expect(mocks.cartItemUpsert).toHaveBeenCalledWith({
       where: { sessionId_variantId: { sessionId: "sess-1", variantId: "v1" } },
       create: { sessionId: "sess-1", variantId: "v1", quantity: 2 },
-      update: { quantity: 2 },
+      update: { quantity: { increment: 2 } },
+      select: { id: true, quantity: true },
     });
+    // 2 <= stok 10 - tiada tulis tambahan.
+    expect(mocks.cartItemUpdateMany).not.toHaveBeenCalled();
     expect(result.itemCount).toBe(0);
   });
 
   it("cart user guna userId_variantId dalam upsert", async () => {
     mocks.variantFindUnique.mockResolvedValue({ id: "v1", stock: 10, product: { isActive: true } });
-    mocks.cartItemFindUnique.mockResolvedValue(null);
-    mocks.cartItemUpsert.mockResolvedValue({});
+    mocks.cartItemUpsert.mockResolvedValue({ id: "ci1", quantity: 1 });
     mocks.cartItemFindMany.mockResolvedValue([]);
 
     await addToCart(ctxUser, { variantId: "v1", quantity: 1 });
@@ -230,18 +228,31 @@ describe("addToCart", () => {
     );
   });
 
-  it("item wujud -> increment dan cap pada stok variant", async () => {
+  it("tanpa userId dan sessionId -> VALIDATION_ERROR 400 (elak baris sessionId kosong dikongsi)", async () => {
+    await expect(
+      addToCart({ sessionId: null, userId: null }, { variantId: "v1", quantity: 1 }),
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR", status: 400 });
+
+    expect(mocks.variantFindUnique).not.toHaveBeenCalled();
+    expect(mocks.cartItemUpsert).not.toHaveBeenCalled();
+  });
+
+  it("item wujud -> increment (bukan tulis nilai mutlak) dan cap pada stok variant", async () => {
     mocks.variantFindUnique.mockResolvedValue({ id: "v1", stock: 10, product: { isActive: true } });
-    mocks.cartItemFindUnique.mockResolvedValue(cartRow({ quantity: 8 }));
-    mocks.cartItemUpsert.mockResolvedValue({});
+    mocks.cartItemUpsert.mockResolvedValue({ id: "ci1", quantity: 13 });
     mocks.cartItemFindMany.mockResolvedValue([]);
 
     await addToCart(ctxGuest, { variantId: "v1", quantity: 5 });
 
-    // 8 + 5 = 13, cap stok 10
+    // Increment +5 di DB (atomic) - baca-lalu-tulis hilang kuantiti bila serentak.
     expect(mocks.cartItemUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ update: { quantity: 10 } }),
+      expect.objectContaining({ update: { quantity: { increment: 5 } } }),
     );
+    // 13 > stok 10 -> cap bersyarat (hanya jika masih melebihi stok).
+    expect(mocks.cartItemUpdateMany).toHaveBeenCalledWith({
+      where: { id: "ci1", quantity: { gt: 10 } },
+      data: { quantity: 10 },
+    });
   });
 
   it("stok 0 -> throw ApiError OUT_OF_STOCK 409", async () => {
@@ -252,6 +263,18 @@ describe("addToCart", () => {
       status: 409,
     });
     expect(mocks.cartItemUpsert).not.toHaveBeenCalled();
+  });
+
+  it("stok lebih kecil daripada kuantiti diminta -> create dicap pada stok", async () => {
+    mocks.variantFindUnique.mockResolvedValue({ id: "v1", stock: 3, product: { isActive: true } });
+    mocks.cartItemUpsert.mockResolvedValue({ id: "ci1", quantity: 3 });
+    mocks.cartItemFindMany.mockResolvedValue([]);
+
+    await addToCart(ctxGuest, { variantId: "v1", quantity: 9 });
+
+    expect(mocks.cartItemUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ quantity: 3 }) }),
+    );
   });
 
   it("variant tak wujud / produk tak aktif -> NOT_FOUND 404", async () => {
@@ -267,27 +290,37 @@ describe("addToCart", () => {
 describe("updateCartItem", () => {
   it("quantity cap pada stok variant", async () => {
     mocks.cartItemFindUnique.mockResolvedValue(cartRow({ quantity: 2 }));
-    mocks.cartItemUpdate.mockResolvedValue({});
+    mocks.cartItemUpdateMany.mockResolvedValue({ count: 1 });
     mocks.cartItemFindMany.mockResolvedValue([]);
 
     const result = await updateCartItem(ctxGuest, "ci1", 99);
 
-    expect(mocks.cartItemUpdate).toHaveBeenCalledWith({
+    expect(mocks.cartItemUpdateMany).toHaveBeenCalledWith({
       where: { id: "ci1" },
       data: { quantity: 10 },
     });
     expect(result.itemCount).toBe(0);
   });
 
+  it("baris dipadam serentak (updateMany count 0) -> NOT_FOUND 404, bukan 500", async () => {
+    mocks.cartItemFindUnique.mockResolvedValue(cartRow({ quantity: 2 }));
+    mocks.cartItemUpdateMany.mockResolvedValue({ count: 0 });
+
+    await expect(updateCartItem(ctxGuest, "ci1", 3)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      status: 404,
+    });
+  });
+
   it("quantity < 1 -> buang item (remove)", async () => {
     mocks.cartItemFindUnique.mockResolvedValue(cartRow({ quantity: 2 }));
-    mocks.cartItemDelete.mockResolvedValue({});
+    mocks.cartItemDeleteMany.mockResolvedValue({ count: 1 });
     mocks.cartItemFindMany.mockResolvedValue([]);
 
     await updateCartItem(ctxGuest, "ci1", 0);
 
-    expect(mocks.cartItemDelete).toHaveBeenCalledWith({ where: { id: "ci1" } });
-    expect(mocks.cartItemUpdate).not.toHaveBeenCalled();
+    expect(mocks.cartItemDeleteMany).toHaveBeenCalledWith({ where: { id: "ci1" } });
+    expect(mocks.cartItemUpdateMany).not.toHaveBeenCalled();
   });
 
   it("item bukan kepunyaan ctx -> NOT_FOUND 404", async () => {
@@ -297,7 +330,20 @@ describe("updateCartItem", () => {
       code: "NOT_FOUND",
       status: 404,
     });
-    expect(mocks.cartItemUpdate).not.toHaveBeenCalled();
+    expect(mocks.cartItemUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("stok variant jatuh ke 0 -> OUT_OF_STOCK 409, tiada baris kuantiti 0 ditulis", async () => {
+    mocks.cartItemFindUnique.mockResolvedValue(
+      cartRow({ quantity: 2, variant: { ...cartRow().variant, stock: 0 } }),
+    );
+
+    await expect(updateCartItem(ctxGuest, "ci1", 3)).rejects.toMatchObject({
+      code: "OUT_OF_STOCK",
+      status: 409,
+    });
+    expect(mocks.cartItemUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.cartItemDeleteMany).not.toHaveBeenCalled();
   });
 
   it("item tak wujud -> NOT_FOUND 404", async () => {
@@ -313,12 +359,12 @@ describe("updateCartItem", () => {
 describe("removeCartItem", () => {
   it("delete item sendiri dan return getCart", async () => {
     mocks.cartItemFindUnique.mockResolvedValue(cartRow());
-    mocks.cartItemDelete.mockResolvedValue({});
+    mocks.cartItemDeleteMany.mockResolvedValue({ count: 1 });
     mocks.cartItemFindMany.mockResolvedValue([]);
 
     const result = await removeCartItem(ctxGuest, "ci1");
 
-    expect(mocks.cartItemDelete).toHaveBeenCalledWith({ where: { id: "ci1" } });
+    expect(mocks.cartItemDeleteMany).toHaveBeenCalledWith({ where: { id: "ci1" } });
     expect(result.items).toEqual([]);
   });
 
@@ -331,7 +377,7 @@ describe("removeCartItem", () => {
       code: "NOT_FOUND",
       status: 404,
     });
-    expect(mocks.cartItemDelete).not.toHaveBeenCalled();
+    expect(mocks.cartItemDeleteMany).not.toHaveBeenCalled();
   });
 });
 
@@ -341,21 +387,24 @@ describe("mergeCart", () => {
       cartRow({ quantity: 2 }), // v1 stok 10
       cartRow({ id: "ci2", variantId: "v2", quantity: 3, variant: { ...cartRow().variant, id: "v2", stock: 5 } }),
     ]);
-    // item user sedia ada utk v1 (quantity 4); v2 tiada
-    mocks.cartItemFindUnique.mockResolvedValueOnce(cartRow({ userId: "user-1", quantity: 4 }));
-    mocks.cartItemFindUnique.mockResolvedValueOnce(null);
+    mocks.cartItemUpsert
+      .mockResolvedValueOnce({ id: "u-ci1", quantity: 6 })
+      .mockResolvedValueOnce({ id: "u-ci2", quantity: 3 });
 
     await mergeCart("user-1", "sess-1");
 
     expect(mocks.transaction).toHaveBeenCalled();
-    // v1: 4 + 2 = 6 (bawah cap 10)
+    // v1: item user (4) + item guest (2) - increment atomic, tiada baca-lalu-tulis.
     expect(mocks.cartItemUpsert).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         where: { userId_variantId: { userId: "user-1", variantId: "v1" } },
-        update: { quantity: 6 },
+        update: { quantity: { increment: 2 } },
+        select: { id: true, quantity: true },
       }),
     );
+    // 6 <= stok 10 -> tiada cap tambahan.
+    expect(mocks.cartItemUpdateMany).not.toHaveBeenCalled();
     // v2: tiada sedia ada -> create quantity 3
     expect(mocks.cartItemUpsert).toHaveBeenNthCalledWith(
       2,
@@ -369,14 +418,19 @@ describe("mergeCart", () => {
 
   it("gabung quantity cap pada stok (existing + session melebihi stok)", async () => {
     mocks.cartItemFindMany.mockResolvedValue([cartRow({ quantity: 5 })]); // stok 10
-    mocks.cartItemFindUnique.mockResolvedValueOnce(cartRow({ userId: "user-1", quantity: 9 }));
+    // Item user sudah 9; increment +5 menjadikan 14.
+    mocks.cartItemUpsert.mockResolvedValueOnce({ id: "u-ci1", quantity: 14 });
 
     await mergeCart("user-1", "sess-1");
 
-    // 9 + 5 = 14, cap 10
     expect(mocks.cartItemUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ update: { quantity: 10 } }),
+      expect.objectContaining({ update: { quantity: { increment: 5 } } }),
     );
+    // 14 > stok 10 -> cap bersyarat.
+    expect(mocks.cartItemUpdateMany).toHaveBeenCalledWith({
+      where: { id: "u-ci1", quantity: { gt: 10 } },
+      data: { quantity: 10 },
+    });
     expect(mocks.cartItemDeleteMany).toHaveBeenCalledWith({ where: { sessionId: "sess-1" } });
   });
 

@@ -7,6 +7,7 @@ import {
   OrderStatusBadge,
   PaymentStatusBadge,
 } from "@/components/akaun/status-badges";
+import { ImageFrame, ImagePlaceholder } from "@/components/ui/image-frame";
 import { ApiError } from "@/lib/errors";
 import { formatDate, formatRM } from "@/lib/format";
 import { requireUser } from "@/server/guards";
@@ -40,18 +41,14 @@ function toAddress(value: unknown): ShippingAddressShape {
   return {};
 }
 
-/** Imej item: dari produk; fallback placeholder (corak toCardProduct PDP). */
-function itemImage(order: OrderDetail, index: number): string {
-  return (
-    order.items[index]?.image ??
-    `https://picsum.photos/seed/maisara-order-${order.id.slice(-6)}-${index}/400/500`
-  );
-}
-
 /**
  * Detail order (UX.md section 4, DESIGN.md 8 - Akaun).
  * Items (imej + nama + variant + qty + harga), alamat, penghantaran,
  * ringkasan jumlah, status. Order bukan milik user -> notFound().
+ *
+ * Imej item datang dari produk (order.items[].image). OrderDetail tidak
+ * menyimpan slug produk, jadi apabila imej tiada kita papar ImagePlaceholder
+ * yang disengajakan - bukan URL stok rawak.
  */
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { id } = await params;
@@ -68,28 +65,31 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   }
 
   const address = toAddress(order.shippingAddress);
-  const lineTotal = (index: number) =>
-    (Number(order.items[index].unitPrice) * order.items[index].quantity).toFixed(2);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       <Link
         href="/akaun/order"
-        className="inline-flex items-center gap-1.5 text-sm text-ink-soft transition-colors hover:text-gold-deep"
+        className="meta-label inline-flex items-center gap-2 text-cocoa transition-colors duration-(--dur-fast) hover:text-ink"
       >
-        <ArrowLeft size={16} />
+        <ArrowLeft size={14} aria-hidden="true" />
         Kembali ke Order
       </Link>
 
       {/* Kepala: no. order + tarikh + status */}
-      <section className="rounded-2xl border border-line p-6 md:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+      <section aria-labelledby="order-ringkasan" className="border-t border-line pt-6">
+        <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
           <div>
-            <p className="text-xs tracking-wide text-ink-soft uppercase">No. Pesanan</p>
-            <p className="mt-1 font-serif text-2xl font-medium tabular-nums text-ink">
+            <p className="meta-label text-cocoa">No. Pesanan</p>
+            <p
+              id="order-ringkasan"
+              className="mt-3 font-display text-h3 tabular-nums text-ink"
+            >
               #{order.id.slice(0, 8).toUpperCase()}
             </p>
-            <p className="mt-1 text-sm text-ink-soft">{formatDate(order.createdAt)}</p>
+            <p className="mt-2 font-mono text-body-sm text-cocoa">
+              {formatDate(order.createdAt)}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <OrderStatusBadge status={order.status} />
@@ -99,50 +99,56 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
       </section>
 
       {/* Items */}
-      <section className="rounded-2xl border border-line p-6 md:p-8">
-        <h2 className="font-serif text-xl font-medium text-ink">Item Pesanan</h2>
-        <ul className="mt-5 divide-y divide-line">
-          {order.items.map((item, index) => (
-            <li key={item.id} className="flex gap-4 py-4 first:pt-0 last:pb-0">
-              <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-surface">
-                <Image
-                  src={itemImage(order, index)}
-                  alt={item.productName}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex flex-1 flex-col justify-between gap-2">
+      <section aria-labelledby="order-items">
+        <h2 id="order-items" className="font-display text-h3 text-ink">
+          Item Pesanan
+        </h2>
+        <ul className="mt-6 divide-y divide-line border-y border-line">
+          {order.items.map((item) => (
+            <li key={item.id} className="flex gap-5 py-5">
+              <ImageFrame ratio="4 / 5" rounded="xs" className="w-16 shrink-0">
+                {item.image ? (
+                  <Image
+                    src={item.image}
+                    alt={item.productName}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <ImagePlaceholder label="Tiada imej" />
+                )}
+              </ImageFrame>
+              <div className="flex flex-1 flex-col justify-between gap-3">
                 <div>
-                  <p className="font-medium text-ink">{item.productName}</p>
-                  <p className="mt-0.5 text-sm text-ink-soft">
+                  <p className="text-body-sm text-ink">{item.productName}</p>
+                  <p className="mt-1 text-body-sm text-cocoa">
                     {[item.color, item.size].filter(Boolean).join(" · ") ||
                       "Saiz unik"}
                   </p>
                 </div>
-                <p className="text-sm text-ink-soft">
+                <p className="text-body-sm text-cocoa">
                   {item.quantity} × {formatRM(item.unitPrice)}
                 </p>
               </div>
-              <p className="text-sm font-medium tabular-nums text-ink">
-                {formatRM(lineTotal(index))}
+              <p className="text-body-sm tabular-nums text-ink">
+                {formatRM((Number(item.unitPrice) * item.quantity).toFixed(2))}
               </p>
             </li>
           ))}
         </ul>
 
         {/* Ringkasan jumlah */}
-        <dl className="mt-6 space-y-2 border-t border-line pt-5 text-sm">
-          <div className="flex justify-between text-ink-soft">
+        <dl className="mt-6 space-y-3 text-body-sm">
+          <div className="flex justify-between gap-6 text-cocoa">
             <dt>Subtotal</dt>
             <dd className="tabular-nums text-ink">{formatRM(order.subtotal)}</dd>
           </div>
-          <div className="flex justify-between text-ink-soft">
+          <div className="flex justify-between gap-6 text-cocoa">
             <dt>Penghantaran ({order.shippingMethod})</dt>
             <dd className="tabular-nums text-ink">{formatRM(order.shippingFee)}</dd>
           </div>
-          <div className="flex justify-between border-t border-line pt-3 text-base font-medium">
+          <div className="flex justify-between gap-6 border-t border-line pt-4 text-body-lg">
             <dt className="text-ink">Jumlah</dt>
             <dd className="tabular-nums text-ink">{formatRM(order.total)}</dd>
           </div>
@@ -150,15 +156,15 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
       </section>
 
       {/* Alamat penghantaran */}
-      <section className="rounded-2xl border border-line p-6 md:p-8">
-        <h2 className="font-serif text-xl font-medium text-ink">Alamat Penghantaran</h2>
-        <address className="mt-4 text-sm leading-relaxed text-ink-soft not-italic">
-          <p className="font-medium text-ink">{address.name ?? "-"}</p>
-          <p>{address.phone ?? "-"}</p>
+      <section aria-labelledby="order-alamat" className="border-t border-line pt-6">
+        <h2 id="order-alamat" className="meta-label text-cocoa">
+          Alamat Penghantaran
+        </h2>
+        <address className="mt-4 text-body-sm leading-relaxed text-cocoa not-italic">
+          <p className="text-ink">{address.name ?? "-"}</p>
+          <p className="tabular-nums">{address.phone ?? "-"}</p>
           <p>{address.address ?? "-"}</p>
-          <p>
-            {[address.postcode, address.state].filter(Boolean).join(", ")}
-          </p>
+          <p>{[address.postcode, address.state].filter(Boolean).join(", ")}</p>
         </address>
       </section>
     </div>

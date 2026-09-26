@@ -4,10 +4,12 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ShoppingBag } from "@phosphor-icons/react";
 
+import { cn } from "@/lib/utils";
+
 import { useCart } from "./cart-context";
 
 /**
- * Butang cart header (DESIGN.md 7.1). Badge kiraan dari cart context
+ * Butang beg header (spesifikasi 11). Badge kiraan dari cart context
  * (sembunyi bila 0, motion layout bila berubah). Klik buka drawer cart;
  * href /cart kekal sebagai fallback semantik.
  */
@@ -23,9 +25,13 @@ export function CartButton() {
         open();
       }}
       aria-label={`Cart, ${itemCount} item`}
-      className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-gold-tint hover:text-gold-deep"
+      className={cn(
+        "relative flex size-11 items-center justify-center rounded-xs text-cocoa",
+        "transition-colors duration-(--dur-fast) hover:bg-bone hover:text-ink",
+        "group-data-[state=top]:text-paper/80 group-data-[state=top]:hover:bg-paper/10 group-data-[state=top]:hover:text-paper",
+      )}
     >
-      <ShoppingBag size={20} />
+      <ShoppingBag size={19} aria-hidden="true" />
       <AnimatePresence>
         {itemCount > 0 && (
           <motion.span
@@ -35,7 +41,11 @@ export function CartButton() {
             animate={{ scale: 1, opacity: 1 }}
             exit={reduceMotion ? undefined : { scale: 0.6, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[11px] font-semibold tabular-nums text-card"
+            className={cn(
+              "absolute top-0.5 right-0.5 flex h-5 min-w-5 items-center justify-center rounded-xs px-1",
+              "bg-ink font-mono text-meta leading-none tracking-normal text-paper tabular-nums",
+              "group-data-[state=top]:bg-paper group-data-[state=top]:text-ink",
+            )}
           >
             {itemCount}
           </motion.span>

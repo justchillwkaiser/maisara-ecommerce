@@ -1,21 +1,29 @@
-"use client"
+"use client";
 
-import { useTheme } from "next-themes"
-import { Toaster as Sonner, type ToasterProps } from "sonner"
+import { Toaster as Sonner, type ToasterProps } from "sonner";
 import {
   CheckCircle,
   Info,
   SpinnerGap,
   Warning,
   XCircle,
-} from "@phosphor-icons/react"
+} from "@phosphor-icons/react";
 
+/**
+ * Toaster MAISARA.
+ *
+ * Tema toast ditakrifkan dalam `globals.css` pada `[data-sonner-toaster]`,
+ * jadi komponen ini tidak menetapkan warna secara inline. Itu mengelakkan
+ * dua sumber kebenaran untuk palet yang sama, dan memastikan notifikasi
+ * cart serta borang kekal dalam sistem warna MAISARA.
+ *
+ * Aplikasi ini paparan cerah sahaja (tiada ThemeProvider dipasang), jadi
+ * tema dikunci kepada "light" dan bukan dibaca daripada next-themes.
+ */
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="light"
       className="toaster group"
       icons={{
         success: <CheckCircle className="size-4" />,
@@ -24,17 +32,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
         error: <XCircle className="size-4" />,
         loading: <SpinnerGap className="size-4 animate-spin" />,
       }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius-2xl)",
-          "--success-text": "var(--success)",
-          "--warning-text": "var(--warning)",
-          "--error-text": "var(--danger)",
-        } as React.CSSProperties
-      }
       toastOptions={{
         classNames: {
           toast: "cn-toast",
@@ -42,7 +39,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       {...props}
     />
-  )
-}
+  );
+};
 
-export { Toaster }
+export { Toaster };

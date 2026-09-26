@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { cn } from "@/lib/utils";
 import type { ProductVariantDetail } from "@/server/services/product.service";
 
 import { AddToCart } from "./add-to-cart";
@@ -14,28 +15,30 @@ interface PdpClientProps {
   product: { name: string; slug: string; price: string; image: string };
 }
 
-/** Status stok (DESIGN.md 7.6): teks ink-soft, gold tint pill, surface pill. */
+/**
+ * Status stok (spesifikasi 15): mono dan bersudut, bukan pill. Diumumkan
+ * melalui aria-live supaya perubahan stok didengar bila variant bertukar.
+ */
 function StockStatus({ stock }: { stock: number | null }) {
   if (stock == null) return null;
-  if (stock === 0) {
-    return (
-      <span className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-ink-soft">
-        Habis
-      </span>
-    );
-  }
-  if (stock <= 5) {
-    return (
-      <span className="rounded-full bg-gold-tint px-3 py-1 text-xs font-medium text-gold-deep">
-        Stok rendah
-      </span>
-    );
-  }
-  return <span className="text-sm text-ink-soft">Tersedia</span>;
+
+  const label = stock === 0 ? "Habis" : stock <= 5 ? "Stok rendah" : "Tersedia";
+
+  return (
+    <p
+      aria-live="polite"
+      className={cn(
+        "meta-label text-cocoa",
+        stock === 0 && "border border-line bg-bone px-3 py-2",
+      )}
+    >
+      {label}
+    </p>
+  );
 }
 
 /**
- * Client wrapper PDP (DESIGN.md 8): pegang state variantId + quantity dan
+ * Client wrapper PDP (spesifikasi 15): pegang state variantId + quantity dan
  * render VariantPicker + QuantityStepper + AddToCart + status stok.
  * Parent (server page) hantar variants; semua interaksi di sini.
  */
@@ -55,17 +58,29 @@ export function PdpClient({ variants, product }: PdpClientProps) {
 
   const stock = selected?.stock ?? null;
 
+  // Ayat arahan ikut kawalan yang benar-benar wujud pada produk ini.
+  const requiredGroups = [
+    ...(variants.some((variant) => variant.color != null) ? ["warna"] : []),
+    ...(variants.some((variant) => variant.size != null) ? ["saiz"] : []),
+  ];
+  const hint =
+    requiredGroups.length > 0 ? `Pilih ${requiredGroups.join(" dan ")} dahulu.` : "";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <VariantPicker variants={variants} value={variantId} onChange={handleVariantChange} />
 
-      <div className="flex flex-wrap items-center gap-4">
-        <QuantityStepper
-          value={quantity}
-          onChange={setQuantity}
-          max={stock ?? 99}
-          disabled={!selected || stock === 0}
-        />
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-t border-line pt-6">
+        <div className="flex items-center gap-4">
+          <span className="meta-label text-cocoa">Kuantiti</span>
+          <QuantityStepper
+            value={quantity}
+            onChange={setQuantity}
+            max={stock ?? 99}
+            disabled={!selected || stock === 0}
+            label={product.name}
+          />
+        </div>
         <StockStatus stock={stock} />
       </div>
 
@@ -75,6 +90,7 @@ export function PdpClient({ variants, product }: PdpClientProps) {
         quantity={quantity}
         product={product}
         variant={selected}
+        hint={hint}
       />
     </div>
   );

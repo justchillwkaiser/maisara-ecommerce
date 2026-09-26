@@ -5,6 +5,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/server/guards";
 import { ProfilForm } from "@/components/akaun/profil-form";
+import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = {
   title: "Akaun Saya",
@@ -20,6 +21,7 @@ export default async function AkaunProfilePage() {
   const user = await requireUser();
 
   // Ringkasan: gagal senyap ke 0 jika DB tidak dapat dicapai (corak fallback).
+  // Ralat di-log supaya kegagalan DB tidak hilang tanpa jejak.
   let orderCount = 0;
   let wishlistCount = 0;
   try {
@@ -27,40 +29,36 @@ export default async function AkaunProfilePage() {
       db.order.count({ where: { userId: user.id } }),
       db.wishlistItem.count({ where: { userId: user.id } }),
     ]);
-  } catch {
-    /* fallback: paparan 0 */
+  } catch (caught) {
+    console.error("[akaun] ringkasan pesanan/wishlist gagal:", caught);
   }
 
   const isAdmin = user.role === "ADMIN";
   const displayName = user.name?.trim() ? user.name : "Pelanggan";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-14">
       {/* Info peribadi */}
-      <section className="rounded-2xl border border-line p-6 md:p-8">
-        <h2 className="font-serif text-2xl font-medium text-ink">Profil</h2>
-        <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_1.4fr]">
-          <dl className="grid content-start gap-5 sm:grid-cols-2 lg:grid-cols-1">
+      <section aria-labelledby="akaun-profil">
+        <h2 id="akaun-profil" className="font-display text-h3 text-ink">
+          Profil
+        </h2>
+        <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_1.4fr]">
+          <dl className="grid content-start gap-6 sm:grid-cols-2 lg:grid-cols-1">
             <div>
-              <dt className="text-xs tracking-wide text-ink-soft uppercase">Nama</dt>
-              <dd className="mt-1 text-ink">{displayName}</dd>
+              <dt className="meta-label text-cocoa">Nama</dt>
+              <dd className="mt-2 text-body-sm text-ink">{displayName}</dd>
             </div>
             <div>
-              <dt className="text-xs tracking-wide text-ink-soft uppercase">Email</dt>
-              <dd className="mt-1 text-ink">{user.email}</dd>
+              <dt className="meta-label text-cocoa">Email</dt>
+              <dd className="mt-2 text-body-sm text-ink">{user.email}</dd>
             </div>
             <div>
-              <dt className="text-xs tracking-wide text-ink-soft uppercase">Peranan</dt>
-              <dd>
-                <span
-                  className={
-                    isAdmin
-                      ? "mt-1 inline-flex rounded-full bg-gold px-3 py-1 text-xs font-medium text-card"
-                      : "mt-1 inline-flex rounded-full bg-surface px-3 py-1 text-xs font-medium text-ink"
-                  }
-                >
+              <dt className="meta-label text-cocoa">Peranan</dt>
+              <dd className="mt-2">
+                <Badge variant={isAdmin ? "default" : "outline"}>
                   {isAdmin ? "Admin" : "Pelanggan"}
-                </span>
+                </Badge>
               </dd>
             </div>
           </dl>
@@ -69,30 +67,30 @@ export default async function AkaunProfilePage() {
       </section>
 
       {/* Ringkasan */}
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section aria-label="Ringkasan akaun" className="grid gap-6 sm:grid-cols-2">
         <Link
           href="/akaun/order"
-          className="group rounded-2xl border border-line p-6 transition-colors hover:border-gold"
+          className="flex items-center justify-between gap-6 border border-line bg-paper-lift px-6 py-7 transition-colors duration-(--dur-fast) hover:border-ink"
         >
-          <span className="flex size-10 items-center justify-center rounded-full bg-gold-tint text-gold-deep">
-            <Package size={20} />
+          <span className="flex flex-col gap-3">
+            <span className="meta-label text-cocoa">Jumlah pesanan</span>
+            <span className="font-display text-h3 tabular-nums text-ink">
+              {orderCount}
+            </span>
           </span>
-          <span className="mt-4 block font-serif text-3xl font-medium tabular-nums text-ink">
-            {orderCount}
-          </span>
-          <span className="mt-1 block text-sm text-ink-soft">Jumlah pesanan</span>
+          <Package size={20} aria-hidden="true" className="shrink-0 text-cocoa" />
         </Link>
         <Link
           href="/akaun/wishlist"
-          className="group rounded-2xl border border-line p-6 transition-colors hover:border-gold"
+          className="flex items-center justify-between gap-6 border border-line bg-paper-lift px-6 py-7 transition-colors duration-(--dur-fast) hover:border-ink"
         >
-          <span className="flex size-10 items-center justify-center rounded-full bg-gold-tint text-gold-deep">
-            <Heart size={20} />
+          <span className="flex flex-col gap-3">
+            <span className="meta-label text-cocoa">Produk disimpan</span>
+            <span className="font-display text-h3 tabular-nums text-ink">
+              {wishlistCount}
+            </span>
           </span>
-          <span className="mt-4 block font-serif text-3xl font-medium tabular-nums text-ink">
-            {wishlistCount}
-          </span>
-          <span className="mt-1 block text-sm text-ink-soft">Produk disimpan</span>
+          <Heart size={20} aria-hidden="true" className="shrink-0 text-cocoa" />
         </Link>
       </section>
     </div>

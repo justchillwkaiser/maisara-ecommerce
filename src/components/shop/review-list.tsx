@@ -1,3 +1,5 @@
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { formatDate } from "@/lib/format";
 import type { ProductReviewDetail } from "@/server/services/product.service";
 
@@ -10,58 +12,60 @@ interface ReviewListProps {
 }
 
 /**
- * Ulasan pelanggan (DESIGN.md 8 - PDP): purata besar serif + bintang +
- * senarai review APPROVED (nama, tarikh, rating, komen).
- * Form submit review di Task 11 - paparan sahaja buat masa ini.
- * (Kontena luaran diurus oleh halaman PDP.)
+ * Ulasan pelanggan (spesifikasi 15): ringkasan purata, kemudian senarai yang
+ * dipisah garis halus. Metadata (nama, tarikh, nilai) memakai DM Mono supaya ia
+ * kekal sebagai nota kecil, bukan tajuk. Hanya review APPROVED yang dihantar
+ * oleh halaman dipaparkan - tiada ulasan atau nama rekaan.
+ * (Kontena dan jarak luaran diurus oleh halaman PDP.)
  */
 export function ReviewList({ reviews, avgRating, reviewCount }: ReviewListProps) {
   return (
-    <section className="py-16 md:py-24">
-      <div className="max-w-[760px]">
-        <h2 className="font-serif text-3xl font-medium tracking-tight text-ink md:text-4xl">
-          Ulasan Pelanggan
-        </h2>
+    <section aria-label="Ulasan pelanggan">
+      <SectionHeading as="h2" size="h2" title="Ulasan Pelanggan" />
 
-        {reviewCount > 0 && avgRating != null && (
-          <div className="mt-5 flex items-center gap-4">
-            <span className="font-serif text-6xl leading-none font-medium tabular-nums text-ink">
-              {avgRating.toFixed(1)}
-            </span>
-            <div>
-              <RatingStars value={avgRating} size={16} />
-              <p className="mt-1 text-xs text-ink-soft">
-                {reviewCount} ulasan
-              </p>
-            </div>
-          </div>
-        )}
-
-        {reviews.length === 0 ? (
-          <p className="mt-8 border-t border-line pt-8 text-ink-soft">
-            Belum ada ulasan. Jadilah yang pertama.
+      {reviewCount > 0 && avgRating != null ? (
+        <div className="mt-8 flex items-center gap-5 border-t border-line pt-8">
+          <p className="font-display text-display-m tabular-nums text-ink">
+            {avgRating.toFixed(1)}
           </p>
-        ) : (
-          <ul className="mt-4">
-            {reviews.map((review) => (
-              <li key={review.id} className="border-t border-line py-6">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <span className="font-medium text-ink">
-                    {review.user.name ?? "Pelanggan"}
-                  </span>
-                  <time className="text-xs text-ink-soft">
-                    {formatDate(review.createdAt)}
-                  </time>
-                </div>
-                <RatingStars value={review.rating} size={14} className="mt-2" />
-                <p className="mt-2 max-w-[65ch] leading-relaxed text-ink-soft">
-                  {review.comment}
+          <div className="flex flex-col gap-2">
+            <RatingStars value={avgRating} size={15} />
+            <p className="meta-label text-cocoa">{reviewCount} ulasan</p>
+          </div>
+        </div>
+      ) : null}
+
+      {reviews.length === 0 ? (
+        <EmptyState
+          className="mt-10"
+          density="panel"
+          title="Belum ada ulasan"
+          description="Jadilah yang pertama berkongsi pengalaman anda dengan produk ini."
+        />
+      ) : (
+        <ul className="mt-10 divide-y divide-line border-t border-line">
+          {reviews.map((review) => (
+            <li key={review.id} className="py-7">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                <p className="font-mono text-body-sm text-ink">
+                  {review.user.name ?? "Pelanggan"}
                 </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                <time
+                  dateTime={review.createdAt.toISOString()}
+                  className="meta-label text-cocoa"
+                >
+                  {formatDate(review.createdAt)}
+                </time>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <RatingStars value={review.rating} size={13} />
+                <span className="meta-label text-cocoa">{review.rating} / 5</span>
+              </div>
+              <p className="mt-3 max-w-[62ch] text-body text-cocoa">{review.comment}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

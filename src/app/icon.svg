@@ -1,5 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#faf6ef"/>
-  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#8a6836" stroke-width="1.5"/>
-  <text x="32" y="44" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="600" fill="#6b4f2c">M</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Maisara">
+  <rect width="32" height="32" fill="#1c1916" />
+  <path
+    d="M8 24V8.5l8 9.5 8-9.5V24"
+    fill="none"
+    stroke="#f4efe8"
+    stroke-width="2.6"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  />
+  <rect x="8" y="25.4" width="16" height="1.2" fill="#a88a61" />
 </svg>

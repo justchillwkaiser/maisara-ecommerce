@@ -21,6 +21,11 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Medan admin: 44px, radius 2px, fokus 2px — sama untuk input dan textarea. */
+const fieldClass = "h-11 rounded-xs focus-visible:ring-2";
+const textareaClass =
+  "w-full min-w-0 rounded-xs border border-line bg-paper-lift px-3 py-2.5 text-body-sm text-ink transition-colors outline-none placeholder:text-cocoa/60 focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-ink/20 aria-invalid:border-danger";
+
 interface ProductFormVariant {
   id?: string;
   color: string | null;
@@ -140,54 +145,70 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8" noValidate>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-8"
+      noValidate
+      aria-busy={submitting}
+    >
       {apiError && (
         <div
           role="alert"
-          className="rounded-2xl border border-danger/30 bg-danger/5 px-5 py-4 text-sm text-danger"
+          aria-live="polite"
+          className="border border-danger/40 bg-bone px-5 py-4 text-body-sm text-oxblood"
         >
           {apiError}
         </div>
       )}
 
       {/* Info asas */}
-      <section aria-label="Info asas" className="rounded-2xl border border-line bg-card p-6">
-        <h2 className="font-serif text-lg font-medium text-ink">Info Asas</h2>
+      <section aria-labelledby="pf-info" className="border border-line bg-paper-lift p-6">
+        <h2 id="pf-info" className="font-display text-h3 text-ink">
+          Info Asas
+        </h2>
 
-        <div className="mt-5 grid gap-5">
-          <div className="grid gap-1.5">
-            <label htmlFor="p-name" className="text-sm font-medium text-ink">
+        <div className="mt-6 grid gap-6">
+          <div className="grid gap-2">
+            <label htmlFor="p-name" className="meta-label text-cocoa">
               Nama Produk
             </label>
             <Input
               id="p-name"
-              placeholder="cth. Tudung Bawal Premium"
+              placeholder="cth. Tudung Bawal Cotton"
               aria-invalid={Boolean(errors.name)}
+              aria-describedby={errors.name ? "p-name-error" : undefined}
+              className={fieldClass}
               {...register("name")}
             />
             {errors.name && (
-              <p className="text-xs text-danger">{errors.name.message}</p>
+              <p id="p-name-error" className="text-body-sm text-oxblood">
+                {errors.name.message}
+              </p>
             )}
           </div>
 
-          <div className="grid gap-1.5">
-            <label htmlFor="p-slug" className="text-sm font-medium text-ink">
+          <div className="grid gap-2">
+            <label htmlFor="p-slug" className="meta-label text-cocoa">
               Slug (URL)
             </label>
             <Input
               id="p-slug"
               placeholder={slugPreview || "auto-generate dari nama"}
               aria-invalid={Boolean(errors.slug)}
+              aria-describedby="p-slug-hint"
+              className={fieldClass}
               {...register("slug")}
             />
-            <p className="text-xs text-ink-soft">
+            <p id="p-slug-hint" className="text-body-sm text-cocoa">
               Kosongkan untuk auto-generate:{" "}
-              <span className="tabular-nums text-gold-deep">/produk/{slugPreview || "..."}</span>
+              <span className="font-mono tabular-nums text-ink">
+                /produk/{slugPreview || "..."}
+              </span>
             </p>
           </div>
 
-          <div className="grid gap-1.5">
-            <label htmlFor="p-desc" className="text-sm font-medium text-ink">
+          <div className="grid gap-2">
+            <label htmlFor="p-desc" className="meta-label text-cocoa">
               Penerangan
             </label>
             <textarea
@@ -195,17 +216,20 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               rows={4}
               placeholder="Penerangan produk sekurang-kurangnya 10 aksara."
               aria-invalid={Boolean(errors.description)}
-              className="w-full min-w-0 rounded-xl border border-line bg-card px-3 py-2.5 text-base transition-colors outline-none placeholder:text-ink-soft/70 focus-visible:border-gold focus-visible:ring-3 focus-visible:ring-gold/25 aria-invalid:border-danger md:text-sm"
+              aria-describedby={errors.description ? "p-desc-error" : undefined}
+              className={textareaClass}
               {...register("description")}
             />
             {errors.description && (
-              <p className="text-xs text-danger">{errors.description.message}</p>
+              <p id="p-desc-error" className="text-body-sm text-oxblood">
+                {errors.description.message}
+              </p>
             )}
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <label htmlFor="p-price" className="text-sm font-medium text-ink">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <label htmlFor="p-price" className="meta-label text-cocoa">
                 Harga (RM)
               </label>
               <Input
@@ -215,21 +239,26 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                 min="0.01"
                 placeholder="49.00"
                 aria-invalid={Boolean(errors.price)}
+                aria-describedby={errors.price ? "p-price-error" : undefined}
+                className={cn(fieldClass, "tabular-nums")}
                 {...register("price", { valueAsNumber: true })}
               />
               {errors.price && (
-                <p className="text-xs text-danger">{errors.price.message}</p>
+                <p id="p-price-error" className="text-body-sm text-oxblood">
+                  {errors.price.message}
+                </p>
               )}
             </div>
 
-            <div className="grid gap-1.5">
-              <label htmlFor="p-category" className="text-sm font-medium text-ink">
+            <div className="grid gap-2">
+              <label htmlFor="p-category" className="meta-label text-cocoa">
                 Kategori
               </label>
               <select
                 id="p-category"
                 aria-invalid={Boolean(errors.categoryId)}
-                className="h-10 w-full rounded-xl border border-line bg-card px-3 text-sm transition-colors outline-none focus-visible:border-gold focus-visible:ring-3 focus-visible:ring-gold/25 aria-invalid:border-danger"
+                aria-describedby={errors.categoryId ? "p-category-error" : undefined}
+                className="h-11 w-full rounded-xs border border-line bg-paper-lift px-3 text-body-sm text-ink transition-colors outline-none focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-ink/20 aria-invalid:border-danger"
                 {...register("categoryId")}
               >
                 <option value="">Pilih kategori</option>
@@ -240,7 +269,9 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                 ))}
               </select>
               {errors.categoryId && (
-                <p className="text-xs text-danger">{errors.categoryId.message}</p>
+                <p id="p-category-error" className="text-body-sm text-oxblood">
+                  {errors.categoryId.message}
+                </p>
               )}
             </div>
           </div>
@@ -250,12 +281,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               control={control}
               name="featured"
               render={({ field }) => (
-                <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
+                <label className="flex cursor-pointer items-center gap-2.5 text-body-sm text-ink">
                   <input
                     type="checkbox"
                     checked={field.value}
                     onChange={(event) => field.onChange(event.target.checked)}
-                    className="size-4 accent-[var(--gold)]"
+                    className="size-4 accent-[var(--ink)]"
                   />
                   Papar sebagai produk pilihan (featured)
                 </label>
@@ -263,12 +294,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             />
 
             {isEdit && (
-              <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
+              <label className="flex cursor-pointer items-center gap-2.5 text-body-sm text-ink">
                 <input
                   type="checkbox"
                   checked={isActive}
                   onChange={(event) => setIsActive(event.target.checked)}
-                  className="size-4 accent-[var(--gold)]"
+                  className="size-4 accent-[var(--ink)]"
                 />
                 Produk aktif (paparkan di kedai)
               </label>
@@ -278,30 +309,35 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       </section>
 
       {/* Imej */}
-      <section aria-label="Imej" className="rounded-2xl border border-line bg-card p-6">
-        <h2 className="font-serif text-lg font-medium text-ink">Imej</h2>
-        <div className="mt-5 grid gap-1.5">
-          <label htmlFor="p-images" className="text-sm font-medium text-ink">
+      <section aria-labelledby="pf-imej" className="border border-line bg-paper-lift p-6">
+        <h2 id="pf-imej" className="font-display text-h3 text-ink">
+          Imej
+        </h2>
+        <div className="mt-6 grid gap-2">
+          <label htmlFor="p-images" className="meta-label text-cocoa">
             URL Imej
           </label>
           <textarea
             id="p-images"
             rows={3}
-            placeholder={"Satu URL setiap baris\nhttps://example.com/imej-1.jpg"}
-            className="w-full min-w-0 rounded-xl border border-line bg-card px-3 py-2.5 text-base transition-colors outline-none placeholder:text-ink-soft/70 focus-visible:border-gold focus-visible:ring-3 focus-visible:ring-gold/25 md:text-sm"
+            placeholder={"Satu URL setiap baris\n/products/maisara-01.jpg"}
+            aria-describedby="p-images-hint"
+            className={textareaClass}
             value={imagesText}
             onChange={(event) => setImagesText(event.target.value)}
           />
-          <p className="text-xs text-ink-soft">
+          <p id="p-images-hint" className="text-body-sm text-cocoa">
             Imej pertama digunakan sebagai gambar utama produk.
           </p>
         </div>
       </section>
 
       {/* Variants */}
-      <section aria-label="Variants" className="rounded-2xl border border-line bg-card p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-lg font-medium text-ink">Variants & Stok</h2>
+      <section aria-labelledby="pf-variants" className="border border-line bg-paper-lift p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="pf-variants" className="font-display text-h3 text-ink">
+            Variants &amp; Stok
+          </h2>
           <Button
             type="button"
             variant="outline"
@@ -314,81 +350,80 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         </div>
 
         {typeof errors.variants?.message === "string" && (
-          <p className="mt-3 text-xs text-danger">{errors.variants.message}</p>
+          <p className="mt-3 text-body-sm text-oxblood">{errors.variants.message}</p>
         )}
 
-        <ul className="mt-5 space-y-4">
+        <ul className="mt-6 space-y-4">
           {fields.map((field, index) => {
             const variantErrors = errors.variants?.[index];
             return (
-              <li
-                key={field.id}
-                className="rounded-xl border border-line bg-surface/40 p-4"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium tracking-wide text-ink-soft uppercase">
-                    Variant {index + 1}
-                  </p>
-                  <button
+              <li key={field.id} className="border border-line bg-bone/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="meta-label text-cocoa">Variant {index + 1}</p>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-xs"
                     onClick={() => remove(index)}
                     disabled={fields.length <= 1}
-                    aria-label="Buang variant"
-                    className="flex size-7 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-danger/10 hover:text-danger disabled:pointer-events-none disabled:opacity-40"
+                    aria-label={`Buang variant ${index + 1}`}
+                    className="text-cocoa hover:text-oxblood"
                   >
-                    <Trash size={15} />
-                  </button>
+                    <Trash />
+                  </Button>
                 </div>
 
-                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="grid gap-1">
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid gap-2">
                     <label
                       htmlFor={`v-${index}-color`}
-                      className="text-xs font-medium text-ink-soft"
+                      className="meta-label text-cocoa"
                     >
                       Warna
                     </label>
                     <Input
                       id={`v-${index}-color`}
                       placeholder="Sage"
+                      className={fieldClass}
                       {...register(`variants.${index}.color`)}
                     />
                   </div>
-                  <div className="grid gap-1">
-                    <label
-                      htmlFor={`v-${index}-size`}
-                      className="text-xs font-medium text-ink-soft"
-                    >
+                  <div className="grid gap-2">
+                    <label htmlFor={`v-${index}-size`} className="meta-label text-cocoa">
                       Saiz
                     </label>
                     <Input
                       id={`v-${index}-size`}
                       placeholder="M (kosong jika tiada)"
+                      className={fieldClass}
                       {...register(`variants.${index}.size`)}
                     />
                   </div>
-                  <div className="grid gap-1">
-                    <label
-                      htmlFor={`v-${index}-sku`}
-                      className="text-xs font-medium text-ink-soft"
-                    >
+                  <div className="grid gap-2">
+                    <label htmlFor={`v-${index}-sku`} className="meta-label text-cocoa">
                       SKU
                     </label>
                     <Input
                       id={`v-${index}-sku`}
                       placeholder="MAI-BAWAL-SAGE"
                       aria-invalid={Boolean(variantErrors?.sku)}
+                      aria-describedby={
+                        variantErrors?.sku ? `v-${index}-sku-error` : undefined
+                      }
+                      className={cn(fieldClass, "font-mono")}
                       {...register(`variants.${index}.sku`)}
                     />
                     {variantErrors?.sku && (
-                      <p className="text-xs text-danger">{variantErrors.sku.message}</p>
+                      <p
+                        id={`v-${index}-sku-error`}
+                        className="text-body-sm text-oxblood"
+                      >
+                        {variantErrors.sku.message}
+                      </p>
                     )}
                   </div>
-                  <div className="grid gap-1">
-                    <label
-                      htmlFor={`v-${index}-stock`}
-                      className="text-xs font-medium text-ink-soft"
-                    >
+                  <div className="grid gap-2">
+                    <label htmlFor={`v-${index}-stock`} className="meta-label text-cocoa">
                       Stok
                     </label>
                     <Input
@@ -397,10 +432,19 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                       min="0"
                       step="1"
                       aria-invalid={Boolean(variantErrors?.stock)}
+                      aria-describedby={
+                        variantErrors?.stock ? `v-${index}-stock-error` : undefined
+                      }
+                      className={cn(fieldClass, "tabular-nums")}
                       {...register(`variants.${index}.stock`, { valueAsNumber: true })}
                     />
                     {variantErrors?.stock && (
-                      <p className="text-xs text-danger">{variantErrors.stock.message}</p>
+                      <p
+                        id={`v-${index}-stock-error`}
+                        className="text-body-sm text-oxblood"
+                      >
+                        {variantErrors.stock.message}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -411,14 +455,14 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting} aria-busy={submitting}>
           {submitting ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Tambah Produk"}
         </Button>
         <Button
           type="button"
           variant="ghost"
           onClick={() => router.push("/admin/produk")}
-          className={cn("text-ink-soft hover:text-ink")}
+          className="text-cocoa hover:text-ink"
         >
           Batal
         </Button>

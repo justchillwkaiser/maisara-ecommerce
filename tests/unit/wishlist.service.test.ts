@@ -108,8 +108,9 @@ describe("getWishlist", () => {
           slug: "tudung-bella-voal",
           price: "39.90",
           image: "https://img.test/bella.jpg",
+          hoverImage: "https://img.test/bella-2.jpg",
           minStock: 0,
-          quickAddVariantId: "v1",
+          quickAddVariant: { id: "v1", color: "Sage", size: null, stock: 5 },
           avgRating: 4.5,
           reviewCount: 2,
         },
@@ -117,7 +118,7 @@ describe("getWishlist", () => {
     ]);
   });
 
-  it("images string JSON -> parse, image fallback string kosong", async () => {
+  it("images string JSON -> parse; image null apabila produk tiada imej", async () => {
     mocks.wishlistFindMany.mockResolvedValue([
       wishlistRow({
         id: "wl2",
@@ -140,9 +141,9 @@ describe("getWishlist", () => {
     const result = await getWishlist("user-1");
 
     expect(result[0].product.image).toBe("https://img.test/str.jpg");
-    expect(result[1].product.image).toBe("");
+    expect(result[1].product.image).toBeNull();
     expect(result[1].product.minStock).toBe(0);
-    expect(result[1].product.quickAddVariantId).toBeNull();
+    expect(result[1].product.quickAddVariant).toBeNull();
     expect(result[1].product.avgRating).toBeNull();
     expect(result[1].product.reviewCount).toBe(0);
   });

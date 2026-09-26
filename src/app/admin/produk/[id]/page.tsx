@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
 import { ProductForm } from "@/components/admin/product-form";
 import { ApiError } from "@/lib/errors";
@@ -26,16 +27,17 @@ export default async function AdminProdukEditPage({ params }: AdminProdukEditPag
   const categories = await listCategories();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <Link
           href="/admin/produk"
-          className="text-sm font-medium text-gold hover:text-gold-deep"
+          className="meta-label inline-flex items-center gap-2 text-cocoa transition-colors duration-(--dur-fast) hover:text-ink"
         >
+          <ArrowLeft size={14} aria-hidden="true" />
           Kembali ke Produk
         </Link>
-        <h2 className="mt-2 font-serif text-2xl font-medium text-ink">Edit Produk</h2>
-        <p className="mt-1 text-sm text-ink-soft">
+        <h2 className="mt-4 font-display text-h3 text-ink">Edit Produk</h2>
+        <p className="mt-2 text-body-sm text-cocoa">
           Kemas kini maklumat produk, variants dan stok.
         </p>
       </div>

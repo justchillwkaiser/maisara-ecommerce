@@ -9,8 +9,12 @@ export const metadata: Metadata = {
 };
 
 interface ResetPasswordPageProps {
-  searchParams: Promise<{ token?: string }>;
+  // Parameter query boleh berulang (?token=a&token=b) — nilai bukan-string
+  // mesti ditolak sebelum dihantar ke Better Auth.
+  searchParams: Promise<{ token?: string | string[] }>;
 }
+/** Panjang maksimum token reset yang munasabah (Better Auth: id 24 aksara). */
+const MAX_TOKEN_LENGTH = 256;
 
 /**
  * Set semula kata laluan (P3). Token dari query string (pautan reset).
@@ -20,32 +24,42 @@ export default async function SetSemulaKataLaluanPage({
   searchParams,
 }: ResetPasswordPageProps) {
   const { token } = await searchParams;
+  const resetToken = typeof token === "string" ? token.trim() : "";
+  const tokenIsUsable =
+    resetToken.length > 0 && resetToken.length <= MAX_TOKEN_LENGTH;
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-16 md:py-24">
-      <div className="text-center">
-        <p className="text-xs tracking-wide text-ink-soft uppercase">Akaun Maisara</p>
-        <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight text-ink md:text-4xl">
-          Set Semula Kata Laluan
-        </h1>
-        <p className="mt-3 text-sm text-ink-soft">
-          Pilih kata laluan baru untuk akaun anda.
-        </p>
-      </div>
+    <div className="shell py-16 md:py-24">
+      <div className="mx-auto flex w-full max-w-[26rem] flex-col">
+        <header className="text-center">
+          <p className="meta-label text-cocoa">Akaun Maisara</p>
+          <h1 className="mt-4 font-display text-h2 text-ink">
+            Set Semula Kata Laluan
+          </h1>
+          <p className="mt-4 text-body-sm text-cocoa">
+            Pilih kata laluan baru untuk akaun anda.
+          </p>
+        </header>
 
-      {token ? (
-        <ResetPasswordForm token={token} />
-      ) : (
-        <div role="alert" className="mt-8 rounded-2xl border border-line bg-card p-6 text-center">
-          <p className="text-sm text-ink">Pautan reset tidak sah atau telah tamat tempoh.</p>
-          <Link
-            href="/lupa-kata-laluan"
-            className="mt-4 inline-block text-sm font-medium text-gold-deep underline underline-offset-2 transition-colors hover:text-gold"
+        {tokenIsUsable ? (
+          <ResetPasswordForm token={resetToken} />
+        ) : (
+          <div
+            role="alert"
+            className="mt-8 border border-line bg-paper-lift p-6 text-center"
           >
-            Minta pautan baharu
-          </Link>
-        </div>
-      )}
+            <p className="text-body-sm text-ink">
+              Pautan reset tidak sah atau telah tamat tempoh.
+            </p>
+            <Link
+              href="/lupa-kata-laluan"
+              className="mt-4 inline-block text-body-sm text-ink underline underline-offset-4 transition-colors duration-(--dur-fast) hover:text-cocoa"
+            >
+              Minta pautan baharu
+            </Link>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

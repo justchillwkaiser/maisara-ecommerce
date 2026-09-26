@@ -4,27 +4,201 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ==========================================================================
+   MAISARA — DESIGN TOKENS
+   Single source of truth for colour, type, space, radius and motion.
+   Nothing in the application may hard-code these values.
+
+   Layer 1 (primitives)   raw MAISARA palette, named after the material itself.
+   Layer 2 (semantic)     roles: surface, text, line, accent, danger.
+   Layer 3 (bridge)       shadcn/ui variable names, mapped onto layer 2 so the
+                          component library inherits the system instead of
+                          shipping its own palette.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* --- Layer 1: primitives ---------------------------------------------- */
+  --maisara-ink: #1c1916;
+  --maisara-paper: #f4efe8;
+  --maisara-bone: #e9e0d5;
+  --maisara-cocoa: #6b5143;
+  --maisara-olive: #707664;
+  --maisara-clay: #a97862;
+  --maisara-oxblood: #633b38;
+  --maisara-brass: #a88a61;
+
+  /* Derived surfaces — computed from the primitives, never invented. */
+  --maisara-paper-lift: #fbf8f3;
+  --maisara-bone-deep: #ded2c4;
+  --maisara-line: #d9cec0;
+  --maisara-line-strong: #c4b6a4;
+
+  /* --- Layer 2: semantic ------------------------------------------------- */
+  --paper: var(--maisara-paper);
+  --paper-lift: var(--maisara-paper-lift);
+  --bone: var(--maisara-bone);
+  --bone-deep: var(--maisara-bone-deep);
+  --ink: var(--maisara-ink);
+  --cocoa: var(--maisara-cocoa);
+  --olive: var(--maisara-olive);
+  --clay: var(--maisara-clay);
+  --oxblood: var(--maisara-oxblood);
+  --brass: var(--maisara-brass);
+  --line: var(--maisara-line);
+  --line-strong: var(--maisara-line-strong);
+
+  --surface: var(--paper);
+  --surface-raised: var(--paper-lift);
+  --surface-sunken: var(--bone);
+  --surface-inverse: var(--ink);
+  --text-primary: var(--ink);
+  --text-secondary: var(--cocoa);
+  --text-inverse: var(--paper);
+  --text-muted: var(--cocoa);
+  --danger: var(--oxblood);
+
+  /* --- Layout ------------------------------------------------------------ */
+  --shell-max: 1360px;
+  --shell-max-wide: 1440px;
+  --shell-gutter: clamp(1.25rem, 5vw, 4rem);
+  --gutter: clamp(1rem, 1.7vw, 1.5rem);
+
+  /* --- Editorial vertical rhythm ---------------------------------------- */
+  --space-section: clamp(5rem, 9vw, 10rem); /* 80 → 160 */
+  --space-section-lg: clamp(6rem, 11vw, 15rem); /* 96 → 240 */
+
+  /* --- Radius ------------------------------------------------------------ */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* --- Motion ------------------------------------------------------------ */
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-editorial: 600ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* --- Layer 3: shadcn/ui bridge ---------------------------------------- */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-lift);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-lift);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--bone);
+  --secondary-foreground: var(--ink);
+  --muted: var(--bone);
+  --muted-foreground: var(--cocoa);
+  --accent: var(--bone);
+  --accent-foreground: var(--ink);
+  --destructive: var(--oxblood);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--ink);
+  --chart-1: var(--brass);
+  --chart-2: var(--olive);
+  --chart-3: var(--oxblood);
+  --chart-4: var(--cocoa);
+  --chart-5: var(--clay);
+  --sidebar: var(--bone);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--paper-lift);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--ink);
+  --radius: var(--radius-sm);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --paper: #1c1916;
+  --paper-lift: #24201c;
+  --bone: #2a2521;
+  --bone-deep: #332d28;
+  --ink: #f4efe8;
+  --cocoa: #b9a794;
+  --olive: #9aa08e;
+  --clay: #c08f78;
+  --oxblood: #d08a86;
+  --brass: #c4a97e;
+  --line: #3a332d;
+  --line-strong: #4a4139;
+
+  --surface: var(--paper);
+  --surface-raised: var(--paper-lift);
+  --surface-sunken: var(--bone);
+  --surface-inverse: var(--paper);
+  --text-primary: var(--ink);
+  --text-secondary: var(--cocoa);
+  --text-inverse: #1c1916;
+  --text-muted: var(--cocoa);
+  --danger: var(--oxblood);
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-lift);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-lift);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #1c1916;
+  --secondary: var(--bone);
+  --secondary-foreground: var(--ink);
+  --muted: var(--bone);
+  --muted-foreground: var(--cocoa);
+  --accent: var(--bone);
+  --accent-foreground: var(--ink);
+  --destructive: var(--oxblood);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--ink);
+  --sidebar: var(--bone);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: #1c1916;
+  --sidebar-accent: var(--paper-lift);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--ink);
+}
+
+/* ==========================================================================
+   TAILWIND THEME MAPPING
+   Every utility the application may use is declared here, so an undeclared
+   colour fails the build instead of silently falling back.
+   ========================================================================== */
+
 @theme inline {
-  /* DESIGN.md tokens -> Tailwind utilities (bg-gold, text-ink, border-line, dll.) */
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-alt: var(--surface-alt);
+  /* MAISARA colour utilities */
+  --color-paper: var(--paper);
+  --color-paper-lift: var(--paper-lift);
+  --color-bone: var(--bone);
+  --color-bone-deep: var(--bone-deep);
   --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
-  --color-gold: var(--gold);
-  --color-gold-deep: var(--gold-deep);
-  --color-gold-tint: var(--gold-tint);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-danger: var(--danger);
+  --color-cocoa: var(--cocoa);
+  --color-olive: var(--olive);
+  --color-clay: var(--clay);
+  --color-oxblood: var(--oxblood);
+  --color-brass: var(--brass);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-inverse: var(--surface-inverse);
+  --color-danger: var(--danger);
 
-  /* Fonts (next/font set vars pada <html>) */
-  --font-sans: var(--font-sans);
-  --font-serif: var(--font-serif);
-  --font-heading: var(--font-serif);
-
-  /* shadcn semantic mappings -> warm tokens */
+  /* shadcn/ui bridge utilities */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -57,131 +231,202 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Radius scale tetap (DESIGN.md: pill buttons, 12px images, 16px cards) */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.625rem;
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.25rem;
-  --radius-4xl: 1.5rem;
+  /* Font families — next/font sets these vars on <html> */
+  --font-display: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, "SFMono-Regular", monospace;
+  /* Bridge untuk komponen shadcn: `font-heading` dipakai oleh tajuk Sheet,
+     dialog dan kad. Tanpa token ini kelas itu tidak menghasilkan CSS apa-apa
+     dan tajuk bergantung pada peraturan h1-h4 dalam lapisan base. */
+  --font-heading: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+
+  /* Type scale — desktop and mobile ranges unified through clamp() */
+  --text-display-xl: clamp(3.25rem, 7.2vw, 6.5rem);
+  --text-display-xl--line-height: 0.92;
+  --text-display-xl--letter-spacing: -0.025em;
+
+  --text-display-l: clamp(2.625rem, 5vw, 4.5rem);
+  --text-display-l--line-height: 0.96;
+  --text-display-l--letter-spacing: -0.02em;
+
+  --text-display-m: clamp(2.125rem, 3.9vw, 3.5rem);
+  --text-display-m--line-height: 1;
+  --text-display-m--letter-spacing: -0.02em;
+
+  --text-h1: clamp(2.125rem, 3.4vw, 3rem);
+  --text-h1--line-height: 1.05;
+  --text-h1--letter-spacing: -0.018em;
+
+  --text-h2: clamp(1.75rem, 2.8vw, 2.5rem);
+  --text-h2--line-height: 1.12;
+  --text-h2--letter-spacing: -0.015em;
+
+  --text-h3: clamp(1.25rem, 2vw, 1.875rem);
+  --text-h3--line-height: 1.22;
+  --text-h3--letter-spacing: -0.01em;
+
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.65;
+  --text-body: 1rem;
+  --text-body--line-height: 1.7;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.6;
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.4;
+  --text-meta--letter-spacing: 0.14em;
+
+  /* Radius utilities — the scale is deliberately tight; the xl/2xl/3xl names
+     are capped so library components cannot reintroduce a SaaS silhouette. */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
+  --radius-4xl: 12px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root {
-  color-scheme: light;
+/* ==========================================================================
+   LAYOUT UTILITIES
+   ========================================================================== */
 
-  /* DESIGN.md section 3: color tokens (hex exact) */
-  --bg: #faf6ef;
-  --surface: #f1e9dc;
-  --surface-alt: #eae0ce;
-  --card: #fffdf8;
-  --ink: #2c2622;
-  --ink-soft: #6e6459;
-  --gold: #8a6836;
-  --gold-deep: #6b4f2c;
-  --gold-tint: #f5eddd;
-  --success: #5f6b4f;
-  --warning: #8a6836;
-  --danger: #9a4a38;
-  --line: #e3d9c8;
-
-  /* shadcn CSS variables dipetakan ke tokens warm */
-  --background: #faf6ef;
-  --foreground: #2c2622;
-  --card: #fffdf8;
-  --card-foreground: #2c2622;
-  --popover: #fffdf8;
-  --popover-foreground: #2c2622;
-  --primary: #8a6836;
-  --primary-foreground: #fffdf8;
-  --secondary: #f1e9dc;
-  --secondary-foreground: #2c2622;
-  --muted: #f1e9dc;
-  --muted-foreground: #6e6459;
-  --accent: #f5eddd;
-  --accent-foreground: #6b4f2c;
-  --destructive: #9a4a38;
-  --border: #e3d9c8;
-  --input: #e3d9c8;
-  --ring: #8a6836;
-  --chart-1: #8a6836;
-  --chart-2: #5f6b4f;
-  --chart-3: #9a4a38;
-  --chart-4: #6b4f2c;
-  --chart-5: #e3d9c8;
-  --sidebar: #f1e9dc;
-  --sidebar-foreground: #2c2622;
-  --sidebar-primary: #8a6836;
-  --sidebar-primary-foreground: #fffdf8;
-  --sidebar-accent: #f5eddd;
-  --sidebar-accent-foreground: #6b4f2c;
-  --sidebar-border: #e3d9c8;
-  --sidebar-ring: #8a6836;
-  --radius: 0.625rem;
+/* Page shell: 1360px main content, 1440px for wide editorial presentation. */
+@utility shell {
+  width: 100%;
+  max-width: var(--shell-max);
+  margin-inline: auto;
+  padding-inline: var(--shell-gutter);
 }
 
-.dark {
-  color-scheme: dark;
-
-  /* Warm dark (admin panel boleh swap; storefront kekal light) */
-  --bg: #211d1a;
-  --surface: #2b2622;
-  --surface-alt: #332d27;
-  --card: #2b2622;
-  --ink: #f2ede4;
-  --ink-soft: #b3a89a;
-  --gold: #c09a5e;
-  --gold-deep: #d4af7e;
-  --gold-tint: #3a322a;
-  --success: #8a9a76;
-  --warning: #c09a5e;
-  --danger: #c97a63;
-  --line: #3d362f;
-
-  --background: #211d1a;
-  --foreground: #f2ede4;
-  --card: #2b2622;
-  --card-foreground: #f2ede4;
-  --popover: #2b2622;
-  --popover-foreground: #f2ede4;
-  --primary: #c09a5e;
-  --primary-foreground: #211d1a;
-  --secondary: #332d27;
-  --secondary-foreground: #f2ede4;
-  --muted: #332d27;
-  --muted-foreground: #b3a89a;
-  --accent: #3a322a;
-  --accent-foreground: #d4af7e;
-  --destructive: #c97a63;
-  --border: #3d362f;
-  --input: #3d362f;
-  --ring: #c09a5e;
-  --chart-1: #c09a5e;
-  --chart-2: #8a9a76;
-  --chart-3: #c97a63;
-  --chart-4: #d4af7e;
-  --chart-5: #3d362f;
-  --sidebar: #2b2622;
-  --sidebar-foreground: #f2ede4;
-  --sidebar-primary: #c09a5e;
-  --sidebar-primary-foreground: #211d1a;
-  --sidebar-accent: #3a322a;
-  --sidebar-accent-foreground: #d4af7e;
-  --sidebar-border: #3d362f;
-  --sidebar-ring: #c09a5e;
+@utility shell-wide {
+  width: 100%;
+  max-width: var(--shell-max-wide);
+  margin-inline: auto;
+  padding-inline: var(--shell-gutter);
 }
+
+/* 12-column editorial grid. */
+@utility grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--gutter);
+}
+
+/* Full-bleed inside the shell while keeping content aligned. */
+@utility bleed {
+  margin-inline: calc(var(--shell-gutter) * -1);
+}
+
+/* Metadata label: DM Mono, uppercase, tracked — the MAISARA editorial voice. */
+@utility meta-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   TOAST (sonner)
+   Mapped onto MAISARA tokens so cart and form notifications do not introduce
+   a second palette.
+   ========================================================================== */
+
+[data-sonner-toaster] {
+  --normal-bg: var(--paper-lift);
+  --normal-text: var(--ink);
+  --normal-border: var(--line);
+  --success-bg: var(--paper-lift);
+  --success-text: var(--ink);
+  --success-border: var(--olive);
+  --error-bg: var(--paper-lift);
+  --error-text: var(--oxblood);
+  --error-border: var(--oxblood);
+  --border-radius: var(--radius-xs);
+  font-family: var(--font-sans);
+}
+
+[data-sonner-toast] {
+  border-radius: var(--radius-xs);
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   html {
     @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
   }
+
   body {
-    @apply bg-bg font-sans text-ink antialiased;
+    @apply bg-paper text-ink antialiased;
+    font-size: var(--text-body);
+    line-height: 1.7;
+    overflow-x: clip;
   }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
   ::selection {
-    @apply bg-gold-tint text-ink;
+    background: var(--bone);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  /* Media never distorts. */
+  img,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Tabular figures for anything numeric in a column. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Respect the user's motion preference everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

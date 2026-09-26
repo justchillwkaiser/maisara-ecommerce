@@ -163,6 +163,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pendingItemIds, setPendingItemIds] = useState<ReadonlySet<string>>(new Set());
+  // Mutasi cart berjalan serentak (optimistic), jadi respons boleh tiba tak
+  // mengikut urutan. `seqRef` = nombor mutasi terakhir yang bermula,
+  // `inflightRef` = bilangan mutasi yang belum selesai, `resyncRef` = perlu
+  // baca semula dari server kerana satu respons telah dibuang.
+  const seqRef = useRef(0);
+  const inflightRef = useRef(0);
+  const resyncRef = useRef(false);
 
   // Snapshot cart terkini untuk rollback. Dikemas kini selepas commit
   // (useEffect) - bukan semasa render - supaya patuh React 19 lint.
@@ -192,13 +199,48 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const response = await fetch("/api/cart", { cache: "no-store" });
       if (!response.ok) throw await errorFromResponse(response);
       const data = (await response.json()) as CartView;
-      setCart(data);
+      // Jika mutasi sedang berjalan, respons GET ini mungkin sudah basi
+      // (dihantar sebelum mutasi selesai). Respons mutasi terakhir lebih
+      // dipercayai - simpan bendera resync sahaja.
+      if (inflightRef.current === 0) setCart(data);
+      else resyncRef.current = true;
     } catch (error) {
       console.warn("[cart] gagal memuat cart:", error);
     } finally {
       setLoading(false);
     }
   }, []);
+  /**
+   * Mula satu mutasi: pulangkan nombor urutannya. Respons hanya diterima
+   * jika ia daripada mutasi terakhir yang bermula.
+   */
+  const beginMutation = useCallback(() => {
+    inflightRef.current += 1;
+    seqRef.current += 1;
+    return seqRef.current;
+  }, []);
+  /** Terima respons server untuk mutasi bernombor `seq`. */
+  const acceptServerCart = useCallback((seq: number, data: CartView) => {
+    if (seq === seqRef.current) setCart(data);
+    else resyncRef.current = true;
+  }, []);
+  /** Rollback optimistic: snapshot hanya sah jika tiada mutasi lebih baru. */
+  const rollback = useCallback((seq: number, snapshot: CartView) => {
+    if (seq === seqRef.current) setCart(snapshot);
+    else resyncRef.current = true;
+  }, []);
+  /**
+   * Tamat satu mutasi. Bila tiada mutasi lain dan satu respons telah
+   * dibuang (basi / rollback basi), baca semula cart dari server supaya
+   * UI tidak kekal dengan state yang salah.
+   */
+  const endMutation = useCallback(() => {
+    inflightRef.current -= 1;
+    if (inflightRef.current === 0 && resyncRef.current) {
+      resyncRef.current = false;
+      void refresh();
+    }
+  }, [refresh]);
 
   // Fetch pertama selepas mount (hydration safe).
   useEffect(() => {
@@ -209,6 +251,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const add = useCallback(
     async (variantId: string, quantity = 1, preview?: CartItemPreview) => {
       const snapshot = cartRef.current;
+      const seq = beginMutation();
 
       // Optimistic: UI update segera (badge + drawer) tanpa menunggu server.
       if (preview) {
@@ -227,12 +270,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (!response.ok) throw await errorFromResponse(response);
         // Server = source of truth (id sebenar, cap stok, harga terkini).
         const data = (await response.json()) as CartView;
-        setCart(data);
+        acceptServerCart(seq, data);
         if (!preview) setIsOpen(true);
       } catch (error) {
-        if (preview) setCart(snapshot); // rollback kepada state sebelum add
+        if (preview) rollback(seq, snapshot); // rollback kepada state sebelum add
         throw error;
       } finally {
+        endMutation();
         setPendingItemIds((prev) => {
           const next = new Set(prev);
           next.delete(`temp-${variantId}`);
@@ -240,11 +284,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [],
+    [beginMutation, acceptServerCart, rollback, endMutation],
   );
 
   const updateQuantity = useCallback(async (itemId: string, quantity: number) => {
     const snapshot = cartRef.current;
+    const seq = beginMutation();
 
     // Optimistic: stepper respond segera; server sahkan cap stok.
     setCart(applyOptimisticQuantity(cartRef.current, itemId, quantity));
@@ -259,18 +304,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       if (!response.ok) throw await errorFromResponse(response);
       const data = (await response.json()) as CartView;
-      setCart(data);
+      acceptServerCart(seq, data);
     } catch (error) {
-      setCart(snapshot); // rollback
+      rollback(seq, snapshot);
       throw error;
     } finally {
+      endMutation();
       clearPending(itemId);
     }
-  }, [markPending, clearPending]);
+  }, [beginMutation, acceptServerCart, rollback, endMutation, markPending, clearPending]);
 
   const remove = useCallback(
     async (itemId: string) => {
       const snapshot = cartRef.current;
+      const seq = beginMutation();
 
       // Optimistic: item hilang serta-merta; server sahkan pemadaman.
       setCart((prev) => recalc({ ...prev, items: prev.items.filter((item) => item.id !== itemId) }));
@@ -281,13 +328,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (!response.ok) throw await errorFromResponse(response);
         // Server balas 204 tanpa body; state optimistic sudah betul.
       } catch (error) {
-        setCart(snapshot); // rollback
+        rollback(seq, snapshot);
         throw error;
       } finally {
+        endMutation();
         clearPending(itemId);
       }
     },
-    [markPending, clearPending],
+    [beginMutation, rollback, endMutation, markPending, clearPending],
   );
 
   const open = useCallback(() => setIsOpen(true), []);

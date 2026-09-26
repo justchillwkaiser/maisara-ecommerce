@@ -13,13 +13,21 @@ export interface ProductSummary {
   name: string;
   slug: string;
   price: string;
-  image: string;
+  /** Imej pertama galeri; null apabila produk tiada imej (placeholder sistem). */
+  image: string | null;
+  /** Imej kedua galeri untuk hover kad; null apabila hanya ada satu imej. */
+  hoverImage: string | null;
   category: { name: string; slug: string };
   colors: string[];
   sizes: string[];
   minStock: number;
   /** Variant pertama yang ada stok (untuk quick add ke cart); null jika tiada. */
-  quickAddVariantId: string | null;
+  quickAddVariant: {
+    id: string;
+    color: string | null;
+    size: string | null;
+    stock: number;
+  } | null;
   avgRating: number | null;
   reviewCount: number;
 }
@@ -64,27 +72,59 @@ export interface ProductDetail {
   reviewCount: number;
 }
 
-/** Include penuh untuk detail produk (kategori, variants tersusun, review APPROVED). */
-export const PRODUCT_DETAIL_INCLUDE = {
-  category: true,
-  variants: { orderBy: { color: "asc" } },
+/**
+ * Select penuh untuk detail produk (kategori, variants tersusun, review APPROVED).
+ * Hanya medan yang dipaparkan dipilih: kolum yang tidak digunakan (description/
+ * image/order kategori, categoryId/featured/createdAt/updatedAt produk, productId
+ * pada variant, userId/productId/status pada review) tidak ditarik dari DB.
+ */
+export const PRODUCT_DETAIL_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  price: true,
+  images: true,
+  isActive: true,
+  category: { select: { id: true, name: true, slug: true } },
+  variants: {
+    select: { id: true, color: true, size: true, sku: true, stock: true },
+    orderBy: { color: "asc" },
+  },
   reviews: {
     where: { status: "APPROVED" },
-    include: { user: { select: { name: true } } },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      createdAt: true,
+      user: { select: { name: true } },
+    },
     orderBy: { createdAt: "desc" },
   },
-} satisfies Prisma.ProductInclude;
+} satisfies Prisma.ProductSelect;
 
 export type ProductDetailRow = Prisma.ProductGetPayload<{
-  include: typeof PRODUCT_DETAIL_INCLUDE;
+  select: typeof PRODUCT_DETAIL_SELECT;
 }>;
 
+/**
+ * Select ringkasan kad produk (katalog, homepage, produk berkaitan).
+ * `description` sengaja tidak dipilih - medan teks panjang yang tidak
+ * dipaparkan pada kad; kolum produk lain yang tidak dipakai turut dikecualikan.
+ */
+const PRODUCT_SUMMARY_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  price: true,
+  images: true,
+  category: { select: { name: true, slug: true } },
+  variants: { select: { id: true, color: true, size: true, stock: true } },
+  reviews: { where: { status: "APPROVED" }, select: { rating: true } },
+} satisfies Prisma.ProductSelect;
 type ProductWithRelations = Prisma.ProductGetPayload<{
-  include: {
-    category: { select: { name: true; slug: true } };
-    variants: { select: { id: true; color: true; size: true; stock: true } };
-    reviews: { where: { status: "APPROVED" }; select: { rating: true } };
-  };
+  select: typeof PRODUCT_SUMMARY_SELECT;
 }>;
 
 const SORT_ORDER: Record<
@@ -117,18 +157,20 @@ function toSummary(product: ProductWithRelations): ProductSummary {
   const sizes = [...new Set(product.variants.map((variant) => variant.size).filter(Boolean))] as string[];
   const stocks = product.variants.map((variant) => variant.stock);
   const ratings = product.reviews.map((review) => review.rating);
+  const images = parseImages(product.images);
 
   return {
     id: product.id,
     name: product.name,
     slug: product.slug,
     price: product.price.toString(),
-    image: parseImages(product.images)[0] ?? "",
+    image: images[0] ?? null,
+    hoverImage: images[1] ?? null,
     category: { name: product.category.name, slug: product.category.slug },
     colors,
     sizes,
     minStock: stocks.length > 0 ? Math.min(...stocks) : 0,
-    quickAddVariantId: product.variants.find((variant) => variant.stock > 0)?.id ?? null,
+    quickAddVariant: product.variants.find((variant) => variant.stock > 0) ?? null,
     avgRating:
       ratings.length > 0
         ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
@@ -167,11 +209,7 @@ export async function listProducts(query: ProductQuery): Promise<ProductListResu
   const [products, total] = await Promise.all([
     db.product.findMany({
       where,
-      include: {
-        category: { select: { name: true, slug: true } },
-        variants: { select: { id: true, color: true, size: true, stock: true } },
-        reviews: { where: { status: "APPROVED" }, select: { rating: true } },
-      },
+      select: PRODUCT_SUMMARY_SELECT,
       orderBy: SORT_ORDER[query.sort ?? "popular"],
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -185,6 +223,20 @@ export async function listProducts(query: ProductQuery): Promise<ProductListResu
     page,
     pageSize,
   };
+}
+/**
+ * Produk aktif terbaharu (homepage "Koleksi Baharu").
+ * Satu query sahaja: tiada `count` kerana pemanggil tidak memaparkan jumlah,
+ * dan tiada cache kerana harga/stok ialah data inventori yang mesti segar.
+ */
+export async function listRecentProducts(limit: number): Promise<ProductSummary[]> {
+  const products = await db.product.findMany({
+    where: { isActive: true },
+    select: PRODUCT_SUMMARY_SELECT,
+    orderBy: SORT_ORDER.newest,
+    take: limit,
+  });
+  return products.map(toSummary);
 }
 
 /**
@@ -237,13 +289,28 @@ export function toProductDetail(product: ProductDetailRow): ProductDetail {
 export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
   const product = await db.product.findUnique({
     where: { slug },
-    include: PRODUCT_DETAIL_INCLUDE,
+    select: PRODUCT_DETAIL_SELECT,
   });
 
   if (!product || !product.isActive) {
     return null;
   }
 
+  return toProductDetail(product);
+}
+/**
+ * Detail produk aktif oleh id (GET /api/products/[id]). Select yang sama
+ * seperti getProductBySlug supaya route API tidak menyimpan bentuk select
+ * sendiri. Return null jika id tidak wujud atau produk tidak aktif.
+ */
+export async function getProductById(id: string): Promise<ProductDetail | null> {
+  const product = await db.product.findUnique({
+    where: { id },
+    select: PRODUCT_DETAIL_SELECT,
+  });
+  if (!product || !product.isActive) {
+    return null;
+  }
   return toProductDetail(product);
 }
 
@@ -387,11 +454,21 @@ export async function updateProduct(id: string, input: ProductUpdateInput): Prom
       }
 
       // Variant dibuang dari senarai: delete hanya jika tiada rujukan order.
-      for (const variant of existing) {
-        if (inputSkus.has(variant.sku)) continue;
-        const referenced = await tx.orderItem.count({ where: { variantId: variant.id } });
-        if (referenced === 0) {
-          await tx.productVariant.delete({ where: { id: variant.id } });
+      // Satu query untuk semua variant yang dibuang + satu deleteMany, bukan
+      // count() + delete() setiap variant (N+1).
+      const removed = existing.filter((variant) => !inputSkus.has(variant.sku));
+      if (removed.length > 0) {
+        const referenced = await tx.orderItem.findMany({
+          where: { variantId: { in: removed.map((variant) => variant.id) } },
+          select: { variantId: true },
+          distinct: ["variantId"],
+        });
+        const referencedIds = new Set(referenced.map((row) => row.variantId));
+        const deletableIds = removed
+          .filter((variant) => !referencedIds.has(variant.id))
+          .map((variant) => variant.id);
+        if (deletableIds.length > 0) {
+          await tx.productVariant.deleteMany({ where: { id: { in: deletableIds } } });
         }
       }
     }
@@ -433,7 +510,14 @@ export interface AdminProductListItem {
 /** Senarai SEMUA produk (aktif + tidak aktif) untuk jadual admin. */
 export async function listAdminProducts(): Promise<AdminProductListItem[]> {
   const products = await db.product.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      price: true,
+      images: true,
+      isActive: true,
+      featured: true,
       category: { select: { name: true } },
       variants: { select: { stock: true } },
     },
@@ -480,7 +564,21 @@ export interface AdminProductDetail {
 export async function getAdminProduct(id: string): Promise<AdminProductDetail> {
   const product = await db.product.findUnique({
     where: { id },
-    include: { variants: { orderBy: { color: "asc" } } },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      price: true,
+      images: true,
+      categoryId: true,
+      featured: true,
+      isActive: true,
+      variants: {
+        select: { id: true, color: true, size: true, sku: true, stock: true },
+        orderBy: { color: "asc" },
+      },
+    },
   });
 
   if (!product) {
@@ -520,4 +618,21 @@ export async function listCategories(): Promise<CategoryOption[]> {
     select: { id: true, name: true, slug: true },
   });
   return categories;
+}
+export interface ProductSlugEntry {
+  slug: string;
+  updatedAt: Date;
+}
+/**
+ * Semua slug produk aktif + tarikh kemas kini untuk sitemap.
+ * Dua kolum sahaja dan TIADA pagination: senarai penuh diambil dalam satu
+ * query supaya sitemap tidak terpotong (sitemap lama guna listProducts dengan
+ * pageSize 100, jadi produk ke-101 dan seterusnya tercicir).
+ */
+export async function listProductSlugs(): Promise<ProductSlugEntry[]> {
+  return db.product.findMany({
+    where: { isActive: true },
+    select: { slug: true, updatedAt: true },
+    orderBy: { createdAt: "desc" },
+  });
 }

@@ -7,38 +7,59 @@ import { cn } from "@/lib/utils";
 interface QuantityStepperProps {
   value: number;
   onChange: (value: number) => void;
-  /** Stok variant (cap 99). */
+  /** Stok varian — had atas sebenar. */
   max: number;
   disabled?: boolean;
+  /** Label untuk pembaca skrin, cth. nama produk. */
+  label?: string;
+  size?: "default" | "compact";
 }
 
 /**
- * Stepper kuantiti (DESIGN.md 8 - PDP): 1 hingga min(stok variant, 99),
- * butang Minus/Plus + input number. Style pill, border-line.
+ * Stepper kuantiti MAISARA — dikongsi PDP dan beg.
+ *
+ * Radius 2px dan bucu bersudut, bukan pill: ia kekal sebagai kawalan editorial.
+ * Butang mengekalkan sasaran sentuh 44px pada saiz lalai; saiz padat (36px)
+ * hanya untuk baris beg yang sudah padat.
  */
-export function QuantityStepper({ value, onChange, max, disabled = false }: QuantityStepperProps) {
+export function QuantityStepper({
+  value,
+  onChange,
+  max,
+  disabled = false,
+  label,
+  size = "default",
+}: QuantityStepperProps) {
   const cap = Math.min(Math.max(max, 1), 99);
+  const compact = size === "compact";
+  const buttonSize = compact ? "size-9" : "size-11";
 
-  function clamp(n: number) {
-    if (!Number.isFinite(n)) return 1;
-    return Math.min(Math.max(Math.round(n), 1), cap);
+  function clamp(next: number) {
+    if (!Number.isFinite(next)) return 1;
+    return Math.min(Math.max(Math.round(next), 1), cap);
   }
+
+  const controlClass = cn(
+    buttonSize,
+    "flex items-center justify-center text-ink transition-colors duration-(--dur-fast)",
+    "hover:bg-bone disabled:cursor-not-allowed disabled:opacity-35",
+  );
 
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full border border-line bg-card",
+        "inline-flex items-center rounded-xs border border-line bg-paper-lift",
         disabled && "opacity-50",
       )}
     >
       <button
         type="button"
-        aria-label="Kurangkan kuantiti"
+        aria-label={label ? `Kurangkan kuantiti ${label}` : "Kurangkan kuantiti"}
         disabled={disabled || value <= 1}
         onClick={() => onChange(clamp(value - 1))}
-        className="flex h-11 w-11 items-center justify-center rounded-full text-ink transition-colors hover:text-gold-deep disabled:cursor-not-allowed disabled:opacity-40"
+        className={controlClass}
       >
-        <Minus size={16} />
+        <Minus size={14} aria-hidden="true" />
       </button>
       <input
         type="number"
@@ -48,17 +69,23 @@ export function QuantityStepper({ value, onChange, max, disabled = false }: Quan
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(clamp(Number(event.target.value)))}
-        aria-label="Kuantiti"
-        className="w-14 border-none bg-transparent text-center text-sm font-medium tabular-nums text-ink outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:cursor-not-allowed"
+        aria-label={label ? `Kuantiti ${label}` : "Kuantiti"}
+        className={cn(
+          "border-x border-line bg-transparent text-center font-mono tabular-nums text-ink outline-none",
+          "focus-visible:bg-bone",
+          "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+          "disabled:cursor-not-allowed",
+          compact ? "h-9 w-11 text-xs" : "h-11 w-14 text-sm",
+        )}
       />
       <button
         type="button"
-        aria-label="Tambah kuantiti"
+        aria-label={label ? `Tambah kuantiti ${label}` : "Tambah kuantiti"}
         disabled={disabled || value >= cap}
         onClick={() => onChange(clamp(value + 1))}
-        className="flex h-11 w-11 items-center justify-center rounded-full text-ink transition-colors hover:text-gold-deep disabled:cursor-not-allowed disabled:opacity-40"
+        className={controlClass}
       >
-        <Plus size={16} />
+        <Plus size={14} aria-hidden="true" />
       </button>
     </div>
   );

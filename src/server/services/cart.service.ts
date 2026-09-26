@@ -139,6 +139,9 @@ export async function addToCart(
   ctx: CartContext,
   input: { variantId: string; quantity: number },
 ): Promise<CartResult> {
+  if (!ctx.userId && !ctx.sessionId) {
+    throw new ApiError("VALIDATION_ERROR", "Sesi cart tidak sah.", 400);
+  }
   const variant = await db.productVariant.findUnique({
     where: { id: input.variantId },
     include: { product: { select: { isActive: true } } },
@@ -152,18 +155,27 @@ export async function addToCart(
   }
 
   const uniqueWhere = itemUniqueWhere(ctx, input.variantId);
-  const existing = await db.cartItem.findUnique({ where: uniqueWhere });
-  const newQuantity = Math.min((existing?.quantity ?? 0) + input.quantity, variant.stock);
-
-  await db.cartItem.upsert({
+  // Upsert + increment: atomic di peringkat baris, jadi dua permintaan
+  // serentak untuk variant yang sama tidak hilang kuantiti (baca-lalu-tulis
+  // lama: kedua-duanya baca nilai sama lalu tulis hasil sama).
+  const row = await db.cartItem.upsert({
     where: uniqueWhere,
     create: {
-      ...(ctx.userId ? { userId: ctx.userId } : { sessionId: ctx.sessionId ?? "" }),
+      ...(ctx.userId ? { userId: ctx.userId } : { sessionId: ctx.sessionId as string }),
       variantId: input.variantId,
-      quantity: newQuantity,
+      quantity: Math.min(input.quantity, variant.stock),
     },
-    update: { quantity: newQuantity },
+    update: { quantity: { increment: input.quantity } },
+    select: { id: true, quantity: true },
   });
+  // Cap stok sebagai update bersyarat supaya ia tidak menimpa increment
+  // serentak dengan nilai lama.
+  if (row.quantity > variant.stock) {
+    await db.cartItem.updateMany({
+      where: { id: row.id, quantity: { gt: variant.stock } },
+      data: { quantity: variant.stock },
+    });
+  }
 
   return getCart(ctx);
 }
@@ -171,6 +183,8 @@ export async function addToCart(
 /**
  * Kemas kini kuantiti item (API.md section 3 - PATCH /api/cart/[itemId]).
  * Kuantiti cap pada stok variant; quantity <= 0 bermaksud buang item.
+ * Variant yang stoknya sudah 0 ditolak (409 OUT_OF_STOCK) supaya tiada
+ * baris kuantiti 0.
  */
 export async function updateCartItem(
   ctx: CartContext,
@@ -187,12 +201,27 @@ export async function updateCartItem(
   }
 
   if (quantity <= 0) {
-    await db.cartItem.delete({ where: { id: itemId } });
+    await db.cartItem.deleteMany({ where: { id: itemId } });
     return getCart(ctx);
   }
 
+  // Stok boleh jatuh ke 0 selepas item dimasukkan ke cart (admin kurangkan
+  // stok). Cap `min(quantity, 0)` akan menulis baris kuantiti 0 - baris itu
+  // dipaparkan sebagai 0 item dan menghasilkan OrderItem kuantiti 0.
+  // Sebaliknya permintaan ditolak supaya klien rollback ke kuantiti asal.
+  if (item.variant.stock <= 0) {
+    throw new ApiError("OUT_OF_STOCK", "Maaf, produk ini habis stok.", 409);
+  }
   const capped = Math.min(quantity, item.variant.stock);
-  await db.cartItem.update({ where: { id: itemId }, data: { quantity: capped } });
+  // updateMany (bukan update): baris boleh dipadam serentak oleh checkout di
+  // tab lain. `update()` membaling P2025 (500); di sini ia menjadi 404.
+  const updated = await db.cartItem.updateMany({
+    where: { id: itemId },
+    data: { quantity: capped },
+  });
+  if (updated.count === 0) {
+    throw new ApiError("NOT_FOUND", "Item cart tidak ditemui.", 404);
+  }
 
   return getCart(ctx);
 }
@@ -205,15 +234,20 @@ export async function removeCartItem(ctx: CartContext, itemId: string): Promise<
     throw new ApiError("NOT_FOUND", "Item cart tidak ditemui.", 404);
   }
 
-  await db.cartItem.delete({ where: { id: itemId } });
+  // deleteMany (bukan delete): baris mungkin sudah dipadam oleh checkout di
+  // tab lain selepas bacaan di atas - `delete()` membaling P2025 (500).
+  await db.cartItem.deleteMany({ where: { id: itemId } });
   return getCart(ctx);
 }
 
 /**
  * Gabung cart guest (sessionId) ke cart user (UX.md Flow C, selepas login).
- * Transaction: setiap item session di-upsert ke userId (gabung quantity,
- * cap stok; variant stok 0 dilangkau), kemudian semua item session dibuang
- * supaya tiada duplicate.
+ * Transaction: setiap item session di-upsert ke userId dengan increment
+ * atomic (gabung quantity, cap stok; variant stok 0 dilangkau), kemudian
+ * semua item session dibuang supaya tiada duplicate.
+ *
+ * Increment (bukan tulis nilai mutlak): merge boleh berlaku serentak dengan
+ * add-to-cart pada peranti lain, dan tulis mutlak akan memadam increment itu.
  */
 export async function mergeCart(userId: string, sessionId: string): Promise<void> {
   const sessionItems = await db.cartItem.findMany({
@@ -228,16 +262,22 @@ export async function mergeCart(userId: string, sessionId: string): Promise<void
       const stock = item.variant.stock;
       if (stock <= 0) continue;
 
-      const existing = await tx.cartItem.findUnique({
+      const row = await tx.cartItem.upsert({
         where: { userId_variantId: { userId, variantId: item.variantId } },
+        create: {
+          userId,
+          variantId: item.variantId,
+          quantity: Math.min(item.quantity, stock),
+        },
+        update: { quantity: { increment: item.quantity } },
+        select: { id: true, quantity: true },
       });
-      const newQuantity = Math.min((existing?.quantity ?? 0) + item.quantity, stock);
-
-      await tx.cartItem.upsert({
-        where: { userId_variantId: { userId, variantId: item.variantId } },
-        create: { userId, variantId: item.variantId, quantity: newQuantity },
-        update: { quantity: newQuantity },
-      });
+      if (row.quantity > stock) {
+        await tx.cartItem.updateMany({
+          where: { id: row.id, quantity: { gt: stock } },
+          data: { quantity: stock },
+        });
+      }
     }
 
     await tx.cartItem.deleteMany({ where: { sessionId } });

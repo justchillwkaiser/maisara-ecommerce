@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ImageFrame } from "@/components/ui/image-frame";
 import { Input } from "@/components/ui/input";
 import { formatRM } from "@/lib/format";
 
@@ -26,7 +27,7 @@ export interface AdminProductRow {
 /**
  * Jadual produk admin (DESIGN.md 8 - Admin Panel).
  * Search ringkas klien (nama/kategori), imej kecil 40px, status aktif +
- * featured badge, stok minimum variants.
+ * featured badge, stok minimum variants. Padat: garis halus + label mono.
  */
 export function AdminProductTable({ products }: { products: AdminProductRow[] }) {
   const [query, setQuery] = useState("");
@@ -48,7 +49,8 @@ export function AdminProductTable({ products }: { products: AdminProductRow[] })
         <div className="relative w-full max-w-xs">
           <MagnifyingGlass
             size={16}
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-soft"
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-cocoa"
           />
           <Input
             type="search"
@@ -56,10 +58,10 @@ export function AdminProductTable({ products }: { products: AdminProductRow[] })
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari produk..."
             aria-label="Cari produk"
-            className="pl-9"
+            className="h-10 rounded-xs pl-9"
           />
         </div>
-        <Button asChild>
+        <Button asChild size="sm">
           <Link href="/admin/produk/baru">
             <Plus />
             Tambah Produk
@@ -68,21 +70,21 @@ export function AdminProductTable({ products }: { products: AdminProductRow[] })
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-card px-6 py-14 text-center text-sm text-ink-soft">
+        <p className="border border-line bg-paper-lift px-5 py-12 text-center text-body-sm text-cocoa">
           {products.length === 0
             ? "Tiada produk lagi. Tambah produk pertama anda."
             : "Tiada produk sepadan dengan carian."}
-        </div>
+        </p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-line bg-card">
-          <table className="w-full min-w-[760px] text-left text-sm">
+        <div className="overflow-x-auto border border-line bg-paper-lift">
+          <table className="w-full min-w-[760px] text-left text-body-sm">
             <thead>
-              <tr className="border-b border-line text-xs tracking-wide text-ink-soft uppercase">
-                <th className="px-5 py-3 font-medium">Produk</th>
-                <th className="px-5 py-3 font-medium">Harga</th>
-                <th className="px-5 py-3 font-medium">Kategori</th>
-                <th className="px-5 py-3 font-medium">Stok Min</th>
-                <th className="px-5 py-3 font-medium">Status</th>
+              <tr className="border-b border-line">
+                <th className="meta-label px-5 py-3 text-cocoa">Produk</th>
+                <th className="meta-label px-5 py-3 text-cocoa">Harga</th>
+                <th className="meta-label px-5 py-3 text-cocoa">Kategori</th>
+                <th className="meta-label px-5 py-3 text-cocoa">Stok Min</th>
+                <th className="meta-label px-5 py-3 text-cocoa">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -90,7 +92,11 @@ export function AdminProductTable({ products }: { products: AdminProductRow[] })
                 <tr key={product.id} className="border-b border-line last:border-0">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="relative size-10 shrink-0 overflow-hidden rounded-lg border border-line bg-surface">
+                      <ImageFrame
+                        ratio="1 / 1"
+                        rounded="xs"
+                        className="size-10 shrink-0 border border-line"
+                      >
                         {product.image ? (
                           <Image
                             src={product.image}
@@ -100,44 +106,43 @@ export function AdminProductTable({ products }: { products: AdminProductRow[] })
                             className="object-cover"
                           />
                         ) : null}
-                      </div>
+                      </ImageFrame>
                       <div className="min-w-0">
                         <Link
                           href={`/admin/produk/${product.id}`}
-                          className="block max-w-56 truncate font-medium text-ink hover:text-gold"
+                          className="block max-w-56 truncate text-ink underline-offset-4 hover:underline"
                         >
                           {product.name}
                         </Link>
-                        <p className="text-xs text-ink-soft">
+                        <p className="mt-0.5 font-mono text-meta text-cocoa">
                           {product.variantCount} variant
                         </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3 font-medium tabular-nums text-ink">
+                  <td className="px-5 py-3 tabular-nums text-ink">
                     {formatRM(product.price)}
                   </td>
-                  <td className="px-5 py-3 text-ink-soft">{product.category}</td>
+                  <td className="px-5 py-3 text-cocoa">{product.category}</td>
                   <td className="px-5 py-3">
-                    <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium tabular-nums ${
+                    <Badge
+                      variant={
                         product.minStock === 0
-                          ? "bg-danger/10 text-danger"
+                          ? "danger"
                           : product.minStock <= 5
-                            ? "bg-gold-tint text-gold-deep"
-                            : "bg-surface text-ink"
-                      }`}
+                            ? "clay"
+                            : "outline"
+                      }
+                      className="tabular-nums"
                     >
                       {product.minStock}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1.5">
-                      {product.isActive ? (
-                        <Badge variant="success">Aktif</Badge>
-                      ) : (
-                        <Badge variant="secondary">Tidak Aktif</Badge>
-                      )}
+                      <Badge variant={product.isActive ? "olive" : "muted"}>
+                        {product.isActive ? "Aktif" : "Tidak Aktif"}
+                      </Badge>
                       {product.featured && <Badge variant="default">Featured</Badge>}
                     </div>
                   </td>

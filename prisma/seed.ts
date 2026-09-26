@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "better-auth/crypto";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { imagesFor } from "../src/lib/product-images";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const db = new PrismaClient({ adapter });
@@ -414,46 +415,9 @@ const products: ProductSeed[] = [
 ];
 
 // ---------- Seed ----------
-// Imej produk local (public/products) - ganti placeholder picsum (P2 item 4)
-const PRODUCT_IMAGES: Record<string, string[]> = {
-  "tudung-bella-voal": ["/products/tudung-1.jpg", "/products/tudung-2.jpg", "/products/tudung-3.jpg", "/products/tudung-4.jpg"],
-  "tudung-sekolah-arissa": ["/products/tudung-2.jpg", "/products/tudung-3.jpg"],
-  "shawl-silk-premium": ["/products/tudung-3.jpg", "/products/tudung-4.jpg", "/products/tudung-5.jpg"],
-  "tudung-bawal-cotton": ["/products/tudung-4.jpg", "/products/tudung-5.jpg"],
-  "tudung-satin-luxe": ["/products/tudung-5.jpg", "/products/tudung-1.jpg", "/products/tudung-2.jpg"],
-  "baju-kurung-cik-puan": ["/products/baju-kurung-1.jpg", "/products/baju-kurung-2.jpg", "/products/baju-kurung-3.jpg", "/products/baju-kurung-4.jpg"],
-  "baju-kurung-melati": ["/products/baju-kurung-2.jpg", "/products/baju-kurung-3.jpg", "/products/baju-kurung-4.jpg"],
-  "baju-kurung-sofea": ["/products/baju-kurung-3.jpg", "/products/baju-kurung-4.jpg", "/products/baju-kurung-5.jpg"],
-  "baju-kurung-pahang-lace": ["/products/baju-kurung-4.jpg", "/products/baju-kurung-5.jpg"],
-  "baju-kurung-ameena": ["/products/baju-kurung-5.jpg", "/products/baju-kurung-1.jpg", "/products/baju-kurung-2.jpg"],
-  "dress-kasual-dahlia": ["/products/dress-1.jpg", "/products/dress-2.jpg", "/products/dress-3.jpg"],
-  "dress-raya-satin": ["/products/dress-2.jpg", "/products/dress-3.jpg", "/products/dress-4.jpg", "/products/dress-5.jpg"],
-  "dress-midi-serenity": ["/products/dress-3.jpg", "/products/dress-4.jpg", "/products/dress-5.jpg"],
-  "dress-kaftan-zamrud": ["/products/dress-4.jpg", "/products/dress-5.jpg"],
-  "abaya-basic-naura": ["/products/abaya-1.jpg", "/products/abaya-2.jpg", "/products/abaya-3.jpg"],
-  "abaya-lace-emma": ["/products/abaya-2.jpg", "/products/abaya-3.jpg", "/products/abaya-4.jpg", "/products/abaya-5.jpg"],
-  "abaya-moden-layla": ["/products/abaya-3.jpg", "/products/abaya-4.jpg", "/products/abaya-5.jpg"],
-  "abaya-premium-sarah": ["/products/abaya-4.jpg", "/products/abaya-5.jpg", "/products/abaya-1.jpg"],
-  "brooch-emas-gold": ["/products/aksesori-1.jpg", "/products/aksesori-2.jpg"],
-  "shawl-magnet-set": ["/products/aksesori-2.jpg", "/products/aksesori-3.jpg"],
-  "tudung-pin-set": ["/products/aksesori-3.jpg", "/products/aksesori-4.jpg"],
-  "handbag-serut-kecil": ["/products/aksesori-4.jpg", "/products/aksesori-5.jpg", "/products/aksesori-1.jpg"],
-};
-
-function imagesFor(slug: string, count: number): string[] {
-  const images = PRODUCT_IMAGES[slug] ?? [];
-  // Galeri: guna imej yang ada, ulang jika perlu (fallback jaga konsisten).
-  if (images.length >= count) return images.slice(0, count);
-  if (images.length > 0) {
-    const out: string[] = [];
-    for (let i = 0; i < count; i += 1) out.push(images[i % images.length]);
-    return out;
-  }
-  return Array.from(
-    { length: count },
-    (_, i) => `https://picsum.photos/seed/maisara-${slug}-${i + 1}/600/750`,
-  );
-}
+// Imej produk: satu sumber dengan aplikasi (src/lib/product-images.ts).
+// Sebelum ini seed menyimpan peta sendiri yang menunjuk kepada imej stok
+// berwatermark; kini kedua-duanya merujuk fotografi jenama yang sama.
 
 async function main() {
   console.log("Mula seeding katalog...");

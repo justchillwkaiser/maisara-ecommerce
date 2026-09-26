@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import type { ProductVariantDetail } from "@/server/services/product.service";
@@ -12,30 +12,26 @@ interface VariantPickerProps {
   onChange: (variantId: string | null) => void;
 }
 
-/** Peta nama warna -> hex untuk swatch (produk data, bukan token design). */
-const COLOR_SWATCH: Record<string, string> = {
-  Sage: "#9CAF88",
-  Ivory: "#F3ECDC",
-  Mocha: "#8B6F5B",
-  Black: "#2C2622",
-  Navy: "#3A4A5A",
-  Cream: "#F7F0E3",
-  Emerald: "#2F5D50",
-  Burgundy: "#6E2B3A",
-  Gold: "#C9A45C",
-  "Dusty Pink": "#D8A79E",
-  Taupe: "#A08C7B",
-  Rose: "#C98A8A",
-  "Rose Gold": "#C99E8E",
-  Silver: "#B8B8BC",
-  Beige: "#DDD2BD",
-};
+/** Rupa asas satu pilihan: bucu bersudut, mono, sasaran sentuh 44px. */
+const OPTION_CLASS =
+  "flex h-11 items-center justify-center gap-2 rounded-xs border px-4 font-mono text-meta transition-colors duration-(--dur-fast)";
+const OPTION_IDLE = "border-line bg-paper-lift text-ink hover:border-ink";
+const OPTION_ACTIVE = "border-ink bg-ink text-paper";
+const OPTION_DISABLED =
+  "cursor-not-allowed border-line bg-bone text-cocoa opacity-70 hover:border-line";
 
 /**
- * Pemilih variant (DESIGN.md 8 - PDP): swatch warna bulat + pill saiz.
- * Swatch warna disabled bila SEMUA variant warna itu habis stok; pill saiz
- * disabled bila kombinasi (warna, saiz) tiada atau stok 0 (label "Habis").
- * onChange dipanggil dengan variant terpilih; parent simpan state.
+ * Pemilih variant (spesifikasi 15 - PDP).
+ *
+ * Kawalan dibina HANYA daripada data sebenar `variants`: kumpulan warna dari
+ * warna yang benar-benar wujud, kumpulan saiz dari saiz yang benar-benar wujud.
+ * Tiada julat saiz rekaan dan tiada swatch hex yang dicipta - nama warna sebenar
+ * dipaparkan sebagai pilihan mono, jadi warna yang tiada dalam peta tidak pernah
+ * muncul sebagai nilai palsu.
+ *
+ * Pilihan yang stoknya 0 (atau tiada bagi warna terpilih) dilumpuhkan dan
+ * dilabel "Habis"; satu-satunya saiz produk (cth. "ONE SIZE") dipilih automatik
+ * supaya ia kelihatan sebagai satu pilihan, bukan julat.
  */
 export function VariantPicker({ variants, value, onChange }: VariantPickerProps) {
   const [color, setColor] = useState<string | null>(null);
@@ -55,9 +51,15 @@ export function VariantPicker({ variants, value, onChange }: VariantPickerProps)
 
   const colors = [...new Set(variants.map((v) => v.color).filter((c): c is string => Boolean(c)))];
   const sizes = [...new Set(variants.map((v) => v.size).filter((s): s is string => Boolean(s)))];
+  const hasColors = colors.length > 0;
   const hasSizes = sizes.length > 0;
+  /** Produk satu saiz (cth. "ONE SIZE") - bukan julat, jadi dipilih automatik. */
+  const singleSize = sizes.length === 1 ? sizes[0] : null;
+  /** Produk tanpa kawalan warna/saiz: variant sebenar yang ada stok dipilih terus. */
+  const soleVariantId =
+    !hasColors && !hasSizes ? (variants.find((variant) => variant.stock > 0)?.id ?? null) : null;
 
-  /** Jumlah stok bagi semua variant warna ini (0 -> swatch disabled). */
+  /** Jumlah stok bagi semua variant warna ini (0 -> pilihan warna disabled). */
   function colorAvailable(c: string): boolean {
     return variants.some((v) => v.color === c && v.stock > 0);
   }
@@ -80,6 +82,14 @@ export function VariantPicker({ variants, value, onChange }: VariantPickerProps)
     return variants.some((v) => v.size === s && v.stock > 0);
   }
 
+  /** Boleh dipilih dengan keadaan warna semasa. */
+  function sizeSelectable(s: string): boolean {
+    return color != null ? sizeAvailable(s) : sizeAvailableNoColor(s);
+  }
+
+  /** Saiz yang dipaparkan sebagai terpilih: state pembeli, atau satu-satunya saiz. */
+  const activeSize = size ?? (singleSize != null && sizeSelectable(singleSize) ? singleSize : null);
+
   /** Resolve variant id dari (warna, saiz). Perlu kedua-dua jika produk ada saiz. */
   function resolveVariant(nextColor: string | null, nextSize: string | null): string | null {
     if (hasSizes && (!nextColor || !nextSize)) return null;
@@ -93,8 +103,8 @@ export function VariantPicker({ variants, value, onChange }: VariantPickerProps)
   function selectColor(c: string) {
     // Reset saiz jika kombinasi baru tidak sah (tiada variant / habis stok).
     const nextSize =
-      size != null && variants.some((v) => v.color === c && v.size === size && v.stock > 0)
-        ? size
+      activeSize != null && variants.some((v) => v.color === c && v.size === activeSize && v.stock > 0)
+        ? activeSize
         : null;
     setColor(c);
     setSize(nextSize);
@@ -106,15 +116,32 @@ export function VariantPicker({ variants, value, onChange }: VariantPickerProps)
     onChange(resolveVariant(color, s));
   }
 
+  // Pilihan tunggal (satu saiz, atau produk tanpa kawalan) dipilih automatik
+  // sebaik variant sebenar boleh diselesaikan, supaya pembeli tidak perlu
+  // menekan satu-satunya pilihan yang ada.
+  useEffect(() => {
+    if (value !== null) return;
+    if (soleVariantId !== null) {
+      onChange(soleVariantId);
+      return;
+    }
+    if (singleSize === null || size !== null) return;
+    const match = variants.find(
+      (v) => v.color === color && v.size === singleSize && v.stock > 0,
+    );
+    if (match) onChange(match.id);
+  }, [value, soleVariantId, singleSize, size, color, variants, onChange]);
+
+  const hasDisabledOption =
+    colors.some((c) => !colorAvailable(c)) || sizes.some((s) => !sizeSelectable(s));
+
   return (
-    <div className="space-y-5">
-      {colors.length > 0 && (
-        <div>
-          <p className="text-sm font-medium text-ink">
-            Warna
-            {color && <span className="ml-1.5 font-normal text-ink-soft">: {color}</span>}
-          </p>
-          <div className="mt-2.5 flex flex-wrap gap-2.5">
+    <div className="space-y-7">
+      {hasColors ? (
+        <fieldset>
+          <legend className="meta-label text-ink">Warna</legend>
+          {color ? <p className="mt-1.5 font-mono text-body-sm text-cocoa">{color}</p> : null}
+          <div className="mt-3 flex flex-wrap gap-2">
             {colors.map((c) => {
               const disabled = !colorAvailable(c);
               const active = color === c;
@@ -127,56 +154,60 @@ export function VariantPicker({ variants, value, onChange }: VariantPickerProps)
                   aria-pressed={active}
                   aria-label={`Warna ${c}${disabled ? ", habis stok" : ""}`}
                   className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full border transition-all",
-                    active
-                      ? "border-gold ring-2 ring-gold/40"
-                      : "border-line hover:border-gold/60",
-                    disabled && "cursor-not-allowed opacity-35 hover:border-line",
+                    OPTION_CLASS,
+                    active ? OPTION_ACTIVE : OPTION_IDLE,
+                    disabled && OPTION_DISABLED,
                   )}
-                  style={{ backgroundColor: COLOR_SWATCH[c] ?? "#F1E9DC" }}
-                />
+                >
+                  {c}
+                  {disabled ? <span className="text-cocoa">Habis</span> : null}
+                </button>
               );
             })}
           </div>
-        </div>
-      )}
+        </fieldset>
+      ) : null}
 
-      {hasSizes && (
-        <div>
-          <p className="text-sm font-medium text-ink">
-            Saiz
-            {size && <span className="ml-1.5 font-normal text-ink-soft">: {size}</span>}
-          </p>
-          <div className="mt-2.5 flex flex-wrap gap-2">
+      {hasSizes ? (
+        <fieldset>
+          <legend className="meta-label text-ink">Saiz</legend>
+          {activeSize ? (
+            <p className="mt-1.5 font-mono text-body-sm text-cocoa">{activeSize}</p>
+          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
             {sizes.map((s) => {
-              const available = color != null ? sizeAvailable(s) : sizeAvailableNoColor(s);
+              const available = sizeSelectable(s);
               const outOfStock = sizeOutOfStock(s);
-              const disabled = !available;
-              const active = size === s;
+              const active = activeSize === s;
               return (
                 <button
                   key={s}
                   type="button"
                   onClick={() => selectSize(s)}
-                  disabled={disabled}
+                  disabled={!available}
                   aria-pressed={active}
                   aria-label={`Saiz ${s}${outOfStock ? ", habis stok" : ""}`}
                   className={cn(
-                    "flex h-10 min-w-12 items-center justify-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors",
-                    active
-                      ? "border-gold bg-gold-tint text-gold-deep"
-                      : "border-line bg-card text-ink hover:border-gold hover:text-gold-deep",
-                    disabled && "cursor-not-allowed opacity-40 hover:border-line hover:text-ink",
+                    OPTION_CLASS,
+                    "min-w-11 px-3",
+                    active ? OPTION_ACTIVE : OPTION_IDLE,
+                    !available && OPTION_DISABLED,
                   )}
                 >
                   {s}
-                  {outOfStock && <span className="text-[10px] text-ink-soft">Habis</span>}
+                  {outOfStock ? <span className="text-cocoa">Habis</span> : null}
                 </button>
               );
             })}
           </div>
-        </div>
-      )}
+        </fieldset>
+      ) : null}
+
+      {hasDisabledOption ? (
+        <p className="text-body-sm text-cocoa">
+          Pilihan pudar tidak boleh dipilih: stok habis atau tiada bagi warna terpilih.
+        </p>
+      ) : null}
     </div>
   );
 }

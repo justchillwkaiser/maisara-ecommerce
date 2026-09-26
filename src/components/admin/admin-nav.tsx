@@ -24,9 +24,11 @@ const NAV_ITEMS = [
 ] as const;
 
 /**
- * Navigasi admin (UX.md section 4, DESIGN.md 8 - Admin Panel):
- * sidebar pada desktop, tabs scroll pada mobile. Aktif berdasarkan pathname.
- * Log keluar + pautan ke storefront di bawah sidebar.
+ * Navigasi admin (UX.md section 4, DESIGN.md 8 - Admin Panel).
+ *
+ * Rel tab yang sama dengan akaun (bukan pill): garis halus jadi paksi, item
+ * aktif ditanda garis 2px + berat teks + `aria-current="page"`. Mobile:
+ * mendatar boleh skrol; desktop: menegak.
  */
 export function AdminNav({ name }: { name: string | null }) {
   const pathname = usePathname();
@@ -39,12 +41,14 @@ export function AdminNav({ name }: { name: string | null }) {
     router.refresh();
   }
 
+  const itemClass =
+    "-mb-px flex shrink-0 items-center gap-2.5 border-b-2 border-transparent px-4 py-2.5 text-body-sm whitespace-nowrap transition-colors duration-(--dur-fast) lg:-ml-px lg:mb-0 lg:border-b-0 lg:border-l-2";
+
   return (
-    <aside className="lg:w-60 lg:shrink-0">
-      {/* Tabs mobile (horizontal scroll) */}
+    <aside className="lg:w-56 lg:shrink-0">
       <nav
         aria-label="Navigasi admin"
-        className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0"
+        className="flex overflow-x-auto border-b border-line lg:flex-col lg:border-b-0 lg:border-l lg:border-line"
       >
         {NAV_ITEMS.map((item) => {
           const isActive =
@@ -57,13 +61,13 @@ export function AdminNav({ name }: { name: string | null }) {
               href={item.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex shrink-0 items-center gap-2.5 rounded-full px-4 py-2.5 text-sm font-medium transition-colors lg:rounded-xl",
+                itemClass,
                 isActive
-                  ? "bg-gold-tint text-gold-deep"
-                  : "text-ink-soft hover:bg-surface hover:text-ink",
+                  ? "border-ink font-medium text-ink"
+                  : "text-cocoa hover:border-line-strong hover:text-ink",
               )}
             >
-              <item.icon size={18} />
+              <item.icon size={16} aria-hidden="true" />
               {item.label}
             </Link>
           );
@@ -71,24 +75,30 @@ export function AdminNav({ name }: { name: string | null }) {
 
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2.5 rounded-full px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-surface hover:text-ink lg:mt-2 lg:rounded-xl"
+          className={cn(
+            itemClass,
+            "text-cocoa hover:border-line-strong hover:text-ink lg:mt-6",
+          )}
         >
-          <Storefront size={18} />
+          <Storefront size={16} aria-hidden="true" />
           Lihat Kedai
         </Link>
 
         <button
           type="button"
           onClick={() => void handleSignOut()}
-          className="flex shrink-0 items-center gap-2.5 rounded-full px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-surface hover:text-danger lg:mt-2 lg:rounded-xl"
+          className={cn(
+            itemClass,
+            "text-cocoa hover:border-line-strong hover:text-ink lg:mt-2",
+          )}
         >
-          <SignOut size={18} />
+          <SignOut size={16} aria-hidden="true" />
           Log Keluar
         </button>
       </nav>
 
-      <p className="mt-4 hidden text-xs text-ink-soft lg:block">
-        Log masuk sebagai <span className="font-medium text-ink">{displayName}</span>
+      <p className="mt-5 hidden font-mono text-meta text-cocoa lg:block">
+        Log masuk sebagai <span className="text-ink">{displayName}</span>
       </p>
     </aside>
   );

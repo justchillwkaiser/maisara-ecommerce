@@ -7,6 +7,13 @@ interface KoleksiPageProps {
   searchParams: Promise<KoleksiSearchParams>;
 }
 
+/**
+ * Metadata katalog. `?category=<slug>` memaparkan senarai yang sama seperti
+ * `/koleksi/<slug>`, jadi canonical diarahkan ke bentuk path itu (URL yang
+ * disenaraikan dalam sitemap) supaya dua URL dengan kandungan sama tidak
+ * bersaing. Tanpa kategori, canonical ialah /koleksi - tapisan (warna, saiz,
+ * harga, carian) ialah subset katalog yang sama.
+ */
 export async function generateMetadata({
   searchParams,
 }: KoleksiPageProps): Promise<Metadata> {
@@ -14,12 +21,13 @@ export async function generateMetadata({
   const categorySlug =
     typeof params.category === "string" ? params.category : undefined;
   const categories = await getCategories();
-  const categoryName = categories.find((category) => category.slug === categorySlug)?.name;
+  const category = categories.find((item) => item.slug === categorySlug);
 
   return {
-    title: categoryName ? `Koleksi ${categoryName} | Maisara` : "Koleksi | Maisara",
+    title: category ? `Koleksi ${category.name} | Maisara` : "Shop All | Maisara",
     description:
-      "Terokai koleksi Maisara: tudung, baju kurung, dress, abaya dan aksesori. Sentuhan warisan untuk fesyen harian.",
+      "Koleksi Maisara untuk hari biasa, hari istimewa dan segala yang di antaranya. Tudung, baju kurung, dress, abaya dan aksesori untuk hari-hari sebenar.",
+    alternates: { canonical: category ? `/koleksi/${category.slug}` : "/koleksi" },
   };
 }
 

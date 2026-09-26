@@ -10,10 +10,11 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 /**
- * Butang wishlist (DESIGN.md 8 - PDP "Tambah ke Cart + wishlist icon").
- * Toggle POST/DELETE /api/wishlist; ikon Heart gold penuh bila aktif.
+ * Butang wishlist (spesifikasi 15 - PDP, tindakan sekunder di sebelah CTA).
+ * Toggle POST/DELETE /api/wishlist; ikon Heart penuh pada permukaan ink bila
+ * aktif, supaya keadaan terpilih jelas tanpa warna aksen sebagai teks.
  * Jika belum log masuk, redirect ke /log-masuk?next=... (UX.md Flow C).
- * Motion: scale ringan (whileTap) - DESIGN.md 9 (reduced motion -> statik).
+ * Motion: scale ringan (whileTap) - reduced motion -> statik.
  */
 export function WishlistButton({
   productId,
@@ -108,10 +109,10 @@ export function WishlistButton({
       aria-label={isActive ? "Buang dari wishlist" : "Simpan ke wishlist"}
       aria-pressed={isActive}
       className={cn(
-        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors",
+        "flex size-11 shrink-0 items-center justify-center rounded-xs border transition-colors duration-(--dur-base)",
         isActive
-          ? "border-gold bg-gold-tint text-gold-deep"
-          : "border-line text-ink-soft hover:border-gold hover:text-gold-deep",
+          ? "border-ink bg-ink text-paper"
+          : "border-line text-cocoa hover:border-ink hover:text-ink",
         "disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}

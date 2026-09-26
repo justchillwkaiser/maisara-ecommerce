@@ -18,17 +18,17 @@ import {
 test("buy flow lengkap: hero -> koleksi -> PDP -> cart -> checkout -> bayar berjaya", async ({
   page,
 }) => {
-  // Homepage: hero + section featured
+  // Homepage: hero + section koleksi baharu
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /Warisan untuk fesyen harian/ }),
+    page.getByRole("heading", { name: /Warisan, dibentuk semula/ }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Pilihan Maisara" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kepingan terkini" })).toBeVisible();
 
   // Buka koleksi
-  await page.getByRole("link", { name: "Lihat Koleksi" }).first().click();
+  await page.getByRole("link", { name: "Shop New Arrivals" }).first().click();
   await expect(page).toHaveURL(/\/koleksi/);
-  await expect(page.getByRole("heading", { name: "Semua Koleksi" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "SHOP ALL" })).toBeVisible();
 
   // Produk pertama -> pilih variant -> tambah ke cart -> drawer terbuka
   await addFirstProductToCart(page);

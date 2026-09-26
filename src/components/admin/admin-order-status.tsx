@@ -134,9 +134,9 @@ export function AdminOrderList({ orders }: { orders: AdminOrderRow[] }) {
 
   if (orders.length === 0) {
     return (
-      <div className="rounded-2xl border border-line bg-card px-6 py-14 text-center text-sm text-ink-soft">
+      <p className="border border-line bg-paper-lift px-5 py-12 text-center text-body-sm text-cocoa">
         Tiada order lagi.
-      </div>
+      </p>
     );
   }
 
@@ -148,33 +148,34 @@ export function AdminOrderList({ orders }: { orders: AdminOrderRow[] }) {
         const isExpanded = expandedId === order.id;
 
         return (
-          <li key={order.id} className="rounded-2xl border border-line bg-card">
+          <li key={order.id} className="border border-line bg-paper-lift">
             <button
               type="button"
               onClick={() => void toggleExpand(order.id)}
               aria-expanded={isExpanded}
-              className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-5 text-left"
+              className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-4 text-left transition-colors duration-(--dur-fast) hover:bg-bone/40"
             >
               <div className="flex items-center gap-4">
                 <CaretDown
-                  size={16}
+                  size={14}
+                  aria-hidden="true"
                   className={cn(
-                    "shrink-0 text-ink-soft transition-transform",
+                    "shrink-0 text-cocoa motion-safe:transition-transform",
                     isExpanded && "rotate-180",
                   )}
                 />
                 <div>
-                  <p className="font-medium tabular-nums text-ink">
+                  <p className="font-mono text-body-sm tabular-nums text-ink">
                     #{order.id.slice(0, 8).toUpperCase()}
                   </p>
-                  <p className="mt-0.5 text-sm text-ink-soft">
-                    {order.user.name ?? order.user.email ?? "-"} · {formatDate(order.createdAt)} ·{" "}
-                    {order.itemCount} item
+                  <p className="mt-1 font-mono text-meta text-cocoa">
+                    {order.user.name ?? order.user.email ?? "-"} ·{" "}
+                    {formatDate(order.createdAt)} · {order.itemCount} item
                   </p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-base font-medium tabular-nums text-ink">
+                <span className="text-body-sm tabular-nums text-ink">
                   {formatRM(order.total)}
                 </span>
                 <OrderStatusBadge status={order.status} />
@@ -183,48 +184,48 @@ export function AdminOrderList({ orders }: { orders: AdminOrderRow[] }) {
             </button>
 
             {isExpanded && (
-              <div className="border-t border-line px-6 py-5">
+              <div className="border-t border-line px-5 py-5">
                 {loadingId === order.id ? (
-                  <p className="text-sm text-ink-soft">Memuatkan detail...</p>
+                  <p className="text-body-sm text-cocoa">Memuatkan detail...</p>
                 ) : orderDetail ? (
                   <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
                     {/* Items */}
                     <div>
-                      <h3 className="text-xs font-medium tracking-wide text-ink-soft uppercase">
-                        Item
-                      </h3>
-                      <ul className="mt-3 space-y-2">
+                      <h3 className="meta-label text-cocoa">Item</h3>
+                      <ul className="mt-3 divide-y divide-line border-y border-line">
                         {orderDetail.items.map((item) => (
                           <li
                             key={item.id}
-                            className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface/40 px-4 py-3 text-sm"
+                            className="flex items-center justify-between gap-4 py-3 text-body-sm"
                           >
                             <div className="min-w-0">
-                              <p className="truncate font-medium text-ink">
-                                {item.productName}
-                              </p>
-                              <p className="text-xs text-ink-soft">
+                              <p className="truncate text-ink">{item.productName}</p>
+                              <p className="mt-0.5 font-mono text-meta text-cocoa">
                                 {[item.color, item.size].filter(Boolean).join(" / ") ||
                                   "Saiz tunggal"}{" "}
                                 · {item.quantity} unit
                               </p>
                             </div>
-                            <span className="shrink-0 font-medium tabular-nums text-ink">
+                            <span className="shrink-0 tabular-nums text-ink">
                               {formatRM(item.unitPrice)}
                             </span>
                           </li>
                         ))}
                       </ul>
-                      <dl className="mt-4 space-y-1.5 text-sm">
-                        <div className="flex justify-between text-ink-soft">
+                      <dl className="mt-4 space-y-2 text-body-sm">
+                        <div className="flex justify-between gap-6 text-cocoa">
                           <dt>Subtotal</dt>
-                          <dd className="tabular-nums">{formatRM(orderDetail.subtotal)}</dd>
+                          <dd className="tabular-nums text-ink">
+                            {formatRM(orderDetail.subtotal)}
+                          </dd>
                         </div>
-                        <div className="flex justify-between text-ink-soft">
+                        <div className="flex justify-between gap-6 text-cocoa">
                           <dt>Penghantaran ({orderDetail.shippingMethod})</dt>
-                          <dd className="tabular-nums">{formatRM(orderDetail.shippingFee)}</dd>
+                          <dd className="tabular-nums text-ink">
+                            {formatRM(orderDetail.shippingFee)}
+                          </dd>
                         </div>
-                        <div className="flex justify-between border-t border-line pt-1.5 font-medium text-ink">
+                        <div className="flex justify-between gap-6 border-t border-line pt-2 text-ink">
                           <dt>Jumlah</dt>
                           <dd className="tabular-nums">{formatRM(orderDetail.total)}</dd>
                         </div>
@@ -232,33 +233,31 @@ export function AdminOrderList({ orders }: { orders: AdminOrderRow[] }) {
                     </div>
 
                     {/* Alamat + payment + status */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <div>
-                        <h3 className="text-xs font-medium tracking-wide text-ink-soft uppercase">
-                          Alamat Penghantaran
-                        </h3>
+                        <h3 className="meta-label text-cocoa">Alamat Penghantaran</h3>
                         {orderDetail.shippingAddress ? (
-                          <address className="mt-2 text-sm text-ink not-italic">
-                            <p className="font-medium">{orderDetail.shippingAddress.name}</p>
-                            <p className="text-ink-soft">{orderDetail.shippingAddress.phone}</p>
-                            <p className="mt-1 text-ink-soft">
-                              {orderDetail.shippingAddress.address}
+                          <address className="mt-3 text-body-sm text-cocoa not-italic">
+                            <p className="text-ink">
+                              {orderDetail.shippingAddress.name}
                             </p>
-                            <p className="text-ink-soft">
+                            <p className="tabular-nums">
+                              {orderDetail.shippingAddress.phone}
+                            </p>
+                            <p className="mt-1">{orderDetail.shippingAddress.address}</p>
+                            <p>
                               {orderDetail.shippingAddress.postcode},{" "}
                               {orderDetail.shippingAddress.state}
                             </p>
                           </address>
                         ) : (
-                          <p className="mt-2 text-sm text-ink-soft">Tiada alamat.</p>
+                          <p className="mt-3 text-body-sm text-cocoa">Tiada alamat.</p>
                         )}
                       </div>
 
                       <div>
-                        <h3 className="text-xs font-medium tracking-wide text-ink-soft uppercase">
-                          Pembayaran
-                        </h3>
-                        <p className="mt-2 text-sm text-ink">
+                        <h3 className="meta-label text-cocoa">Pembayaran</h3>
+                        <p className="mt-3 font-mono text-body-sm text-ink">
                           {orderDetail.payment
                             ? `${orderDetail.payment.reference} (${orderDetail.payment.provider})`
                             : "Tiada rekod pembayaran."}
@@ -266,11 +265,9 @@ export function AdminOrderList({ orders }: { orders: AdminOrderRow[] }) {
                       </div>
 
                       <div>
-                        <h3 className="text-xs font-medium tracking-wide text-ink-soft uppercase">
-                          Kemas Kini Status
-                        </h3>
+                        <h3 className="meta-label text-cocoa">Kemas Kini Status</h3>
                         {options.length === 0 ? (
-                          <p className="mt-2 text-sm text-ink-soft">
+                          <p className="mt-3 text-body-sm text-cocoa">
                             Tiada transition sah dari status ini.
                           </p>
                         ) : (
@@ -283,7 +280,7 @@ export function AdminOrderList({ orders }: { orders: AdminOrderRow[] }) {
                               }
                             }}
                             disabled={updatingId === order.id}
-                            className="mt-2 h-10 w-full rounded-xl border border-line bg-card px-3 text-sm transition-colors outline-none focus-visible:border-gold focus-visible:ring-3 focus-visible:ring-gold/25 disabled:opacity-50"
+                            className="mt-3 h-10 w-full rounded-xs border border-line bg-paper-lift px-3 text-body-sm text-ink transition-colors outline-none focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-ink/20 disabled:opacity-50"
                           >
                             <option value="" disabled>
                               {updatingId === order.id ? "Menyimpan..." : "Pilih status..."}

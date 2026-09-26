@@ -10,8 +10,10 @@ interface RatingStarsProps {
 }
 
 /**
- * Bintang statik gold (Phosphor Star/StarHalf) - dikongsi oleh ringkasan
- * rating PDP dan setiap review. Separuh bintang untuk nilai .5 (DESIGN.md 7.3).
+ * Bintang statik brass (Phosphor Star/StarHalf) - dikongsi oleh ringkasan
+ * rating PDP dan setiap review. Separuh bintang untuk nilai .5.
+ * Bintang kosong memakai warna garis sistem supaya rawatan bintang kekal
+ * terkawal dan bukan blok warna pekat (spesifikasi 15).
  */
 export function RatingStars({ value, size = 14, className }: RatingStarsProps) {
   const rounded = Math.round(value * 2) / 2;
@@ -19,7 +21,7 @@ export function RatingStars({ value, size = 14, className }: RatingStarsProps) {
   const hasHalf = rounded % 1 !== 0;
 
   return (
-    <span className={cn("flex items-center gap-0.5 text-gold", className)} aria-hidden="true">
+    <span className={cn("flex items-center gap-0.5 text-brass", className)} aria-hidden="true">
       {Array.from({ length: 5 }, (_, i) => {
         if (i < fullStars) {
           return <Star key={i} size={size} weight="fill" />;
@@ -27,7 +29,7 @@ export function RatingStars({ value, size = 14, className }: RatingStarsProps) {
         if (i === fullStars && hasHalf) {
           return <StarHalf key={i} size={size} weight="fill" />;
         }
-        return <Star key={i} size={size} className="opacity-30" />;
+        return <Star key={i} size={size} className="text-line-strong" />;
       })}
     </span>
   );

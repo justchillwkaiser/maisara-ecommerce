@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { List, X } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react";
 
-import type { NavCategory } from "@/lib/categories";
+import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import type { NavCategory } from "@/lib/categories";
+import { PRIMARY_NAV } from "@/lib/site";
 import { cn } from "@/lib/utils";
+
 import type { HeaderUser } from "./auth-nav";
 
 interface HeaderClientProps {
@@ -17,17 +20,62 @@ interface HeaderClientProps {
   user: HeaderUser | null;
 }
 
-/** Bezier lembut (DESIGN.md 9). */
+/** Bezier lembut (spesifikasi 09). */
 const EASE = [0.16, 1, 0.3, 1] as const;
 
+const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+/** Titik putus `lg` Tailwind (64rem): had atas kewujudan panel menu mudah alih. */
+const LG_QUERY = "(min-width: 64rem)";
+
 /**
- * Menu mobile Maisara: hamburger morph (List -> X) + overlay full-screen
+ * Panel menu menutup viewport sepenuhnya, jadi header mesti kekal paper
+ * semasa panel terbuka — jika tidak butang MENU/Beg hilang di atas panel.
+ * HeaderClient (anak HeaderShell) melaporkan keadaan buka melalui context
+ * ini supaya props HeaderClient kekal tidak berubah.
+ */
+const MenuOpenContext = createContext<((open: boolean) => void) | null>(null);
+
+/**
+ * Cangkerang header (spesifikasi 11).
+ *
+ * Hanya homepage mempunyai hero gelap penuh-bleed. Di situ header
+ * dilepaskan daripada aliran (fixed) dan bertindih dengan hero: telus
+ * (`data-state="top"`) selagi belum skrol, kemudian bertukar kepada paper
+ * (`data-state="scrolled"`). Laluan lain kekal sticky dan terus paper supaya
+ * teks sentiasa boleh dibaca. Anak-anak header mewarisi keadaan ini melalui
+ * varian `group-data-[state=top]`.
+ */
+export function HeaderShell({ children }: { children: ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <header
+      data-state={menuOpen ? "menu-open" : "idle"}
+      className={cn(
+        "group sticky top-0 z-50 w-full border-b border-line bg-paper/95",
+        "supports-backdrop-filter:backdrop-blur-[2px]",
+      )}
+    >
+      <MenuOpenContext.Provider value={setMenuOpen}>
+        {children}
+      </MenuOpenContext.Provider>
+    </header>
+  );
+}
+
+/**
+ * Menu mudah alih Maisara: butang MENU dalam header + panel penuh skrin
  * dengan stagger reveal. Reduced motion: semua animasi collapse ke static.
  */
 export function HeaderClient({ categories, user }: HeaderClientProps) {
   const [open, setOpen] = useState(false);
   const reduceMotion = useReducedMotion();
   const router = useRouter();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+  const setMenuOpen = useContext(MenuOpenContext);
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -35,7 +83,12 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
     router.refresh();
   };
 
-  // Kunci scroll body bila overlay terbuka.
+  // Header kekal paper selagi panel terbuka.
+  useEffect(() => {
+    setMenuOpen?.(open);
+  }, [open, setMenuOpen]);
+
+  // Kunci scroll body bila panel terbuka.
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
@@ -45,11 +98,70 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
     };
   }, [open]);
 
-  // Tutup bila Escape ditekan.
+  // Fokus masuk ke panel semasa dibuka, kembali ke butang MENU semasa ditutup.
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      closeRef.current?.focus();
+      return;
+    }
+    if (wasOpen.current) {
+      wasOpen.current = false;
+      triggerRef.current?.focus();
+    }
+  }, [open]);
+
+  // Panel hanya wujud di bawah `lg` (lihat `lg:hidden` pada panel). Bila
+  // viewport melebar melepasi had itu — putaran peranti atau tetingkap
+  // dibesarkan — panel menjadi `display:none`. State mesti ditutup serta-merta:
+  // jika tidak perangkap Tab di bawah akan terus `preventDefault()` dan cuba
+  // memfokus pautan yang tersembunyi, jadi kekunci Tab mati sepenuhnya.
+  useEffect(() => {
+    if (!open) return;
+    const wide = window.matchMedia(LG_QUERY);
+    if (wide.matches) {
+      setOpen(false);
+      return;
+    }
+    const onChange = (event: MediaQueryListEvent) => {
+      if (event.matches) setOpen(false);
+    };
+    wide.addEventListener("change", onChange);
+    return () => wide.removeEventListener("change", onChange);
+  }, [open]);
+  // Escape menutup panel; Tab dikunci dalam panel (dialog modal).
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const panel = panelRef.current;
+      // Panel tersembunyi (cth. viewport sudah `lg`) tiada item boleh fokus:
+      // jangan telan kekunci Tab.
+      if (!panel || panel.clientHeight === 0) return;
+      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+
+      if (!panel.contains(active)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+        return;
+      }
+      if (event.shiftKey && (active === first || active === panel)) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+      if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -69,154 +181,165 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
     exit: reduceMotion ? undefined : { opacity: 0, y: 8 },
   });
 
+  // "Koleksi" sudah menjadi kumpulan kategori di atas, jadi ia tidak diulang
+  // dalam senarai pautan biasa.
+  const navItems = PRIMARY_NAV.filter((item) => item.href !== "/koleksi");
+
   return (
     <>
-      {/* Hamburger morph */}
       <button
+        ref={triggerRef}
         type="button"
         aria-label={open ? "Tutup menu" : "Buka menu"}
         aria-expanded={open}
+        aria-controls="menu-mudah-alih"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-10 w-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-gold-tint hover:text-gold-deep lg:hidden"
+        className={cn(
+          "meta-label flex min-h-11 min-w-11 items-center justify-center rounded-xs px-2 text-ink",
+          "transition-colors duration-(--dur-fast) hover:bg-bone lg:hidden",
+          "group-data-[state=top]:text-paper group-data-[state=top]:hover:bg-paper/10",
+        )}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          {open ? (
-            <motion.span
-              key="close"
-              initial={reduceMotion ? false : { rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={reduceMotion ? undefined : { rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="flex"
-            >
-              <X size={24} weight="bold" />
-            </motion.span>
-          ) : (
-            <motion.span
-              key="open"
-              initial={reduceMotion ? false : { rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={reduceMotion ? undefined : { rotate: -90, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="flex"
-            >
-              <List size={24} weight="bold" />
-            </motion.span>
-          )}
-        </AnimatePresence>
+        {open ? <X size={18} weight="bold" aria-hidden="true" /> : "MENU"}
       </button>
 
-      {/* Overlay full-screen. Portal ke body: header (sticky + backdrop-blur)
-          mencipta containing block untuk position:fixed, menyebabkan inset-0
-          resolve terhadap header (72px) bukan viewport -> menu jadi scroll.
-          Portal melepaskan overlay daripada containing block itu. */}
+      {/* Panel di-portal ke body: `backdrop-filter` pada header mewujudkan
+          containing block untuk keturunan position:fixed, jadi panel yang
+          dirender dalam header akan resolve inset terhadap header (64/72px)
+          dan bukan viewport. Portal melepaskan panel daripada header. */}
       {typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
             {open && (
               <motion.div
                 key="overlay"
+                ref={panelRef}
+                id="menu-mudah-alih"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Menu"
+                tabIndex={-1}
                 initial={reduceMotion ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
-                className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-bg/95 backdrop-blur lg:hidden"
+                className="fixed inset-0 z-40 overflow-y-auto bg-paper-lift outline-none lg:hidden"
               >
                 <nav
                   aria-label="Menu utama"
-                  className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col px-4 pb-10 pt-24 md:px-8"
+                  className="flex min-h-full w-full flex-col px-5 pt-20 pb-10 md:pt-24"
                 >
-                  <ul className="space-y-1">
-                    <motion.li {...stagger(0)}>
-                      <Link
-                        href="/koleksi"
-                        onClick={() => navigate("/koleksi")}
-                        className="block py-2 font-serif text-3xl font-medium text-ink transition-colors hover:text-gold-deep"
-                      >
-                        Semua Koleksi
-                      </Link>
-                    </motion.li>
-                    {categories.map((category, index) => (
-                      <motion.li key={category.slug} {...stagger(index + 1)}>
+                  <div className="flex items-center justify-between">
+                    <p className="meta-label text-cocoa">Menu</p>
+                    <button
+                      ref={closeRef}
+                      type="button"
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "meta-label flex min-h-11 items-center gap-2 rounded-xs px-2 text-ink",
+                        "transition-colors duration-(--dur-fast) hover:bg-bone",
+                      )}
+                    >
+                      Tutup
+                      <X size={16} weight="bold" aria-hidden="true" />
+                    </button>
+                  </div>
+
+                  <div className="mt-6">
+                    <p className="meta-label text-cocoa">Koleksi</p>
+                    <ul className="mt-3 space-y-1">
+                      <motion.li {...stagger(0)}>
                         <Link
-                          href={`/koleksi/${category.slug}`}
-                          onClick={() => navigate(`/koleksi/${category.slug}`)}
-                          className="block py-2 font-serif text-3xl font-medium text-ink-soft transition-colors hover:text-gold-deep"
+                          href="/koleksi"
+                          onClick={() => navigate("/koleksi")}
+                          className="flex min-h-11 items-center font-display text-h2 text-ink transition-colors duration-(--dur-fast) hover:text-cocoa"
                         >
-                          {category.name}
+                          Semua Koleksi
                         </Link>
                       </motion.li>
-                    ))}
-                    <motion.li {...stagger(categories.length + 1)}>
-                      <Link
-                        href="/kisah-kami"
-                        onClick={() => navigate("/kisah-kami")}
-                        className="block py-2 font-serif text-3xl font-medium text-ink-soft transition-colors hover:text-gold-deep"
-                      >
-                        Kisah Kami
-                      </Link>
-                    </motion.li>
-                  </ul>
+                      {categories.map((category, index) => (
+                        <motion.li key={category.slug} {...stagger(index + 1)}>
+                          <Link
+                            href={`/koleksi/${category.slug}`}
+                            onClick={() => navigate(`/koleksi/${category.slug}`)}
+                            className="flex min-h-11 items-center font-display text-h2 text-cocoa transition-colors duration-(--dur-fast) hover:text-ink"
+                          >
+                            {category.name}
+                          </Link>
+                        </motion.li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-10">
+                    <p className="meta-label text-cocoa">Laman</p>
+                    <ul className="mt-3 space-y-1">
+                      {navItems.map((item, index) => (
+                        <motion.li
+                          key={item.href}
+                          {...stagger(categories.length + 1 + index)}
+                        >
+                          <Link
+                            href={item.href}
+                            onClick={() => navigate(item.href)}
+                            className="flex min-h-11 items-center text-body-lg text-ink transition-colors duration-(--dur-fast) hover:text-cocoa"
+                          >
+                            {item.label}
+                          </Link>
+                        </motion.li>
+                      ))}
+                    </ul>
+                  </div>
 
                   {/* Aksi bawah */}
                   <motion.div
-                    {...stagger(categories.length + 2)}
-                    className="mt-auto flex flex-col gap-3 pt-12"
+                    {...stagger(categories.length + navItems.length + 1)}
+                    className="mt-auto flex flex-col gap-2 pt-12"
                   >
                     {user ? (
                       <>
-                        <Link
-                          href="/akaun"
-                          onClick={() => navigate("/akaun")}
-                          className="flex h-12 items-center justify-center rounded-full bg-gold px-6 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
-                        >
-                          {user.name?.trim() ? user.name : user.email} · Akaun Saya
-                        </Link>
-                        {(user as { role?: string }).role === "ADMIN" && (
-                          <Link
-                            href="/admin"
-                            onClick={() => navigate("/admin")}
-                            className="flex h-12 items-center justify-center rounded-full border border-gold/40 px-6 text-sm font-medium text-gold-deep transition-colors hover:bg-gold-tint"
-                          >
-                            Panel Admin
+                        <Button asChild>
+                          <Link href="/akaun" onClick={() => navigate("/akaun")}>
+                            {user.name?.trim() ? user.name : user.email} · Akaun Saya
                           </Link>
+                        </Button>
+                        {user.role === "ADMIN" && (
+                          <Button asChild variant="outline">
+                            <Link href="/admin" onClick={() => navigate("/admin")}>
+                              Panel Admin
+                            </Link>
+                          </Button>
                         )}
-                        <button
-                          type="button"
+                        <Button
+                          variant="outline"
+                          className="hover:border-danger hover:text-danger"
                           onClick={() => void handleSignOut()}
-                          className="flex h-12 items-center justify-center rounded-full border border-ink/20 px-6 text-sm font-medium text-ink transition-colors hover:border-danger hover:text-danger"
                         >
                           Log Keluar
-                        </button>
+                        </Button>
                       </>
                     ) : (
                       <>
-                        <Link
-                          href="/log-masuk"
-                          onClick={() => navigate("/log-masuk")}
-                          className="flex h-12 items-center justify-center rounded-full bg-gold px-6 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
-                        >
-                          Log Masuk
-                        </Link>
-                        <Link
-                          href="/daftar"
-                          onClick={() => navigate("/daftar")}
-                          className="flex h-12 items-center justify-center rounded-full border border-ink/20 px-6 text-sm font-medium text-ink transition-colors hover:border-gold hover:text-gold-deep"
-                        >
-                          Daftar
-                        </Link>
+                        <Button asChild>
+                          <Link href="/log-masuk" onClick={() => navigate("/log-masuk")}>
+                            Log Masuk
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline">
+                          <Link href="/daftar" onClick={() => navigate("/daftar")}>
+                            Daftar
+                          </Link>
+                        </Button>
                       </>
                     )}
-                    <Link
-                      href="/koleksi?search="
-                      onClick={() => navigate("/koleksi?search=")}
-                      className={cn(
-                        "flex h-12 items-center justify-center rounded-full border border-ink/20",
-                        "text-sm font-medium text-ink transition-colors hover:border-gold hover:text-gold-deep",
-                      )}
-                    >
-                      Cari Produk
-                    </Link>
+                    <Button asChild variant="ghost">
+                      <Link
+                        href="/koleksi?search="
+                        onClick={() => navigate("/koleksi?search=")}
+                      >
+                        Cari Produk
+                      </Link>
+                    </Button>
                   </motion.div>
                 </nav>
               </motion.div>

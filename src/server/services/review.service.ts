@@ -20,7 +20,13 @@ export interface ReviewListItem {
 export async function listProductReviews(productId: string): Promise<ReviewListItem[]> {
   const reviews = await db.review.findMany({
     where: { productId, status: "APPROVED" },
-    include: { user: { select: { name: true } } },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      createdAt: true,
+      user: { select: { name: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -111,7 +117,12 @@ export async function listAdminReviews(
 ): Promise<AdminReviewItem[]> {
   const reviews = await db.review.findMany({
     where: status ? { status } : {},
-    include: {
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      status: true,
+      createdAt: true,
       product: { select: { name: true, slug: true } },
       user: { select: { name: true } },
     },

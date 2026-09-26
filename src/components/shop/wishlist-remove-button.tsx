@@ -36,7 +36,7 @@ export function WishlistRemoveButton({ productId }: { productId: string }) {
       type="button"
       onClick={() => void handleRemove()}
       disabled={pending}
-      className="inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2 text-xs font-medium text-ink-soft transition-colors hover:border-danger hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex h-11 items-center gap-1.5 rounded-xs border border-line px-4 font-mono text-[0.625rem] tracking-[0.12em] uppercase text-cocoa transition-colors duration-(--dur-fast) hover:border-oxblood hover:text-oxblood disabled:cursor-not-allowed disabled:opacity-60"
     >
       <Trash size={14} />
       {pending ? "Membuang..." : "Buang"}

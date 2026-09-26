@@ -6,16 +6,32 @@ const siteUrl =
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : "https://maisarabutik.vercel.app");
 
-/** robots.txt: benarkan crawler; halang admin/akaun/checkout daripada di-index. */
+/**
+ * robots.txt: benarkan crawler ke katalog dan kandungan editorial; halang
+ * kawasan transaksi, akaun, admin dan laluan API.
+ */
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/akaun", "/checkout", "/pembayaran", "/api/"],
+        disallow: [
+          "/admin",
+          "/akaun",
+          "/cart",
+          "/checkout",
+          "/pembayaran",
+          "/order",
+          "/log-masuk",
+          "/daftar",
+          "/lupa-kata-laluan",
+          "/set-semula-kata-laluan",
+          "/api/",
+        ],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
+    host: siteUrl,
   };
 }

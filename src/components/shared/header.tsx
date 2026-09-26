@@ -1,21 +1,34 @@
 import Link from "next/link";
-import { CaretDown, Heart, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
 import { getCategories } from "@/lib/categories";
+import { PRIMARY_NAV, SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-import { CartButton } from "./cart-button";
-import { HeaderClient } from "./header-client";
 import { AuthNav } from "./auth-nav";
+import { CartButton } from "./cart-button";
+import { HeaderClient, HeaderShell } from "./header-client";
+
+/** Pautan nav: ink pada permukaan paper yang hangat. */
+const NAV_LINK = cn(
+  "text-body-sm text-cocoa transition-colors duration-(--dur-fast) hover:text-ink",
+);
+
+/** Butang ikon header — sasaran 44px, sudut hampir segi empat (spesifikasi 09). */
+const ICON_LINK = cn(
+  "flex size-11 items-center justify-center rounded-xs text-cocoa",
+  "transition-colors duration-(--dur-fast) hover:bg-bone hover:text-ink",
+);
 
 /**
- * Header Maisara (DESIGN.md 7.1): satu baris, sticky, border-b line.
- * Desktop: logo kiri, nav tengah (Koleksi + dropdown kategori, Kisah Kami),
- * kanan (Carian, Simpan, Cart, AuthNav). Mobile: hamburger -> HeaderClient.
- * Session diambil di server (bukan useSession dalam client) supaya
- * hydration konsisten; selepas login/logout, router.refresh() memuatkan semula.
+ * Header Maisara (spesifikasi 11). Satu baris: wordmark kiri, nav utama
+ * tengah, utiliti kanan (Carian, Akaun, Beg). "Koleksi" membuka dropdown
+ * kategori; kategori datang dari getCategories() di server.
+ *
+ * Session diambil di server (bukan useSession dalam client) supaya hydration
+ * konsisten; selepas login/logout, router.refresh() memuatkan semula props.
  */
 export async function Header() {
   const [categories, session] = await Promise.all([
@@ -26,33 +39,52 @@ export async function Header() {
     | { id: string; name?: string | null; email: string; role?: string }
     | null;
 
+  // "Koleksi" ialah satu-satunya item nav dengan dropdown, jadi ia dipisahkan
+  // daripada senarai pautan biasa.
+  const navItems = PRIMARY_NAV.filter((item) => item.href !== "/koleksi");
+
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-bg/90 backdrop-blur">
-      <div className="mx-auto flex h-[72px] w-full max-w-[1400px] items-center justify-between px-4 md:px-8">
-        {/* Logo */}
+    <HeaderShell>
+      <div className="shell grid h-16 grid-cols-[1fr_auto_1fr] items-center md:h-18">
+        {/* Wordmark */}
         <Link
           href="/"
-          className="font-serif text-2xl font-semibold tracking-[0.02em] text-ink transition-colors hover:text-gold-deep"
+          className={cn(
+            "justify-self-start font-display text-2xl leading-none tracking-[0.16em] text-ink",
+            "transition-colors duration-(--dur-fast) group-data-[state=top]:text-paper",
+          )}
         >
-          Maisara
+          {SITE.name}
         </Link>
 
         {/* Nav tengah (desktop sahaja) */}
         <nav aria-label="Navigasi utama" className="hidden items-center gap-8 lg:flex">
           {/* Koleksi + dropdown kategori */}
-          <div className="group relative">
+          <div className="group/dropdown relative">
             <button
               type="button"
-              className="flex items-center gap-1 rounded-full py-2 text-sm text-ink-soft transition-colors hover:text-gold-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              className={cn(NAV_LINK, "flex items-center gap-1.5 py-3")}
             >
               Koleksi
-              <CaretDown size={14} weight="bold" className="transition-transform duration-200 group-hover:rotate-180" />
+              <CaretDown
+                size={13}
+                weight="bold"
+                aria-hidden="true"
+                className="transition-transform duration-(--dur-fast) ease-out group-hover/dropdown:rotate-180"
+              />
             </button>
-            <div className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-              <div className="w-56 rounded-2xl border border-line bg-card p-2 shadow-[0_2px_4px_rgba(42,38,34,0.06),0_16px_48px_rgba(42,38,34,0.10)]">
+            <div
+              className={cn(
+                "invisible absolute top-full left-1/2 z-50 w-56 -translate-x-1/2 pt-2 opacity-0",
+                "transition-[opacity,visibility] duration-(--dur-fast) ease-out",
+                "group-hover/dropdown:visible group-hover/dropdown:opacity-100",
+                "group-focus-within/dropdown:visible group-focus-within/dropdown:opacity-100",
+              )}
+            >
+              <div className="rounded-sm border border-line bg-paper-lift p-1.5">
                 <Link
                   href="/koleksi"
-                  className="block rounded-xl px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-gold-tint hover:text-gold-deep"
+                  className="block rounded-xs px-3 py-3 text-body-sm text-ink transition-colors duration-(--dur-fast) hover:bg-bone"
                 >
                   Semua Koleksi
                 </Link>
@@ -60,7 +92,7 @@ export async function Header() {
                   <Link
                     key={category.slug}
                     href={`/koleksi/${category.slug}`}
-                    className="block rounded-xl px-4 py-2 text-sm text-ink-soft transition-colors hover:bg-gold-tint hover:text-gold-deep"
+                    className="block rounded-xs px-3 py-3 text-body-sm text-cocoa transition-colors duration-(--dur-fast) hover:bg-bone hover:text-ink"
                   >
                     {category.name}
                   </Link>
@@ -69,45 +101,30 @@ export async function Header() {
             </div>
           </div>
 
-          <Link
-            href="/kisah-kami"
-            className="text-sm text-ink-soft transition-colors hover:text-gold-deep"
-          >
-            Kisah Kami
-          </Link>
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href} className={cn(NAV_LINK, "py-3")}>
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
-        {/* Kanan */}
-        <div className="flex items-center gap-1 md:gap-2">
+        {/* Utiliti */}
+        <div className="flex items-center justify-self-end gap-1 md:gap-2">
           <Link
             href="/koleksi?search="
             aria-label="Cari produk"
-            className={cn(
-              "hidden h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors",
-              "hover:bg-gold-tint hover:text-gold-deep lg:flex",
-            )}
+            className={cn(ICON_LINK, "hidden lg:flex")}
           >
-            <MagnifyingGlass size={20} />
-          </Link>
-          <Link
-            href="/akaun/wishlist"
-            aria-label="Senarai simpanan"
-            className={cn(
-              "hidden h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors",
-              "hover:bg-gold-tint hover:text-gold-deep lg:flex",
-            )}
-          >
-            <Heart size={20} />
+            <MagnifyingGlass size={19} aria-hidden="true" />
           </Link>
 
           <CartButton />
 
           <AuthNav user={user} />
 
-          {/* Hamburger mobile */}
           <HeaderClient categories={categories} user={user} />
         </div>
       </div>
-    </header>
+    </HeaderShell>
   );
 }

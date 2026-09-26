@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 /**
  * Aksi moderasi review (API.md section 6 - PATCH /api/reviews/[id]).
  * Approve (APPROVED) / Sembunyikan (HIDDEN) -> toast + refresh senarai.
+ *
+ * Tona affirmative memakai aksen `olive` sistem (token `success` lama sudah
+ * tiada); teks kekal `ink` supaya kontras pada tint nipis kekal sah.
  */
 export function AdminReviewActions({ reviewId }: { reviewId: string }) {
   const router = useRouter();
@@ -46,30 +49,28 @@ export function AdminReviewActions({ reviewId }: { reviewId: string }) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <button
+      <Button
         type="button"
+        size="sm"
+        variant="ghost"
         onClick={() => void moderate("APPROVED")}
         disabled={pending !== null}
-        className={cn(
-          "inline-flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium transition-colors disabled:opacity-50",
-          "bg-success/10 text-success hover:bg-success/20",
-        )}
+        className="bg-olive/10 text-ink hover:bg-olive/20"
       >
-        <Eye size={14} />
+        <Eye />
         Lulus
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        size="sm"
+        variant="ghost"
         onClick={() => void moderate("HIDDEN")}
         disabled={pending !== null}
-        className={cn(
-          "inline-flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium transition-colors disabled:opacity-50",
-          "bg-danger/10 text-danger hover:bg-danger/20",
-        )}
+        className="bg-oxblood/10 text-oxblood hover:bg-oxblood/20"
       >
-        <EyeSlash size={14} />
+        <EyeSlash />
         Sembunyikan
-      </button>
+      </Button>
     </div>
   );
 }

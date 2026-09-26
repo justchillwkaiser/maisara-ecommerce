@@ -23,8 +23,9 @@ interface SortSelectProps {
 }
 
 /**
- * Dropdown susun katalog (DESIGN.md 8 - Katalog). Native select distyled
- * ringan; pilihan update searchParams sort=... supaya URL shareable.
+ * Susun katalog. Select asli (papan kekunci mudah alih kekal asli) dengan
+ * bingkai hairline 2px dan label mono; pilihan menulis `sort` ke searchParams
+ * supaya URL kekal shareable.
  */
 export function SortSelect({ current, value, className }: SortSelectProps) {
   const router = useRouter();
@@ -32,33 +33,35 @@ export function SortSelect({ current, value, className }: SortSelectProps) {
 
   function handleChange(next: string) {
     const params = new URLSearchParams();
-    for (const [k, v] of Object.entries(current)) {
-      if (v && k !== "sort") params.set(k, v);
+    for (const [key, param] of Object.entries(current)) {
+      if (param && key !== "sort") params.set(key, param);
     }
     if (next !== "popular") params.set("sort", next);
-    const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    const queryString = params.toString();
+    router.push(queryString ? `${pathname}?${queryString}` : pathname);
   }
 
   return (
-    <label className={cn("relative inline-flex items-center", className)}>
-      <span className="sr-only">Susun produk</span>
-      <select
-        value={value}
-        onChange={(event) => handleChange(event.target.value)}
-        className="h-10 cursor-pointer appearance-none rounded-full border border-line bg-card pr-9 pl-4 text-sm font-medium text-ink outline-none transition-colors focus-visible:border-gold focus-visible:ring-3 focus-visible:ring-gold/25"
-      >
-        {SORT_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <CaretDown
-        size={14}
-        aria-hidden="true"
-        className="pointer-events-none absolute right-3.5 text-ink-soft"
-      />
+    <label className={cn("flex items-center gap-3", className)}>
+      <span className="meta-label text-cocoa">Susun</span>
+      <span className="relative inline-flex items-center">
+        <select
+          value={value}
+          onChange={(event) => handleChange(event.target.value)}
+          className="h-11 cursor-pointer appearance-none rounded-xs border border-line bg-paper-lift pr-10 pl-4 font-mono text-body-sm text-ink outline-none transition-colors duration-(--dur-fast) ease-out focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-ink/30"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <CaretDown
+          size={14}
+          aria-hidden="true"
+          className="pointer-events-none absolute right-3.5 text-cocoa"
+        />
+      </span>
     </label>
   );
 }

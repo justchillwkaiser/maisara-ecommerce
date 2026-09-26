@@ -13,10 +13,18 @@ export interface WishlistItemShape {
     name: string;
     slug: string;
     price: string;
-    image: string;
+    /** Imej pertama galeri; null apabila produk tiada imej. */
+    image: string | null;
+    /** Imej kedua galeri untuk hover kad; null apabila hanya ada satu imej. */
+    hoverImage: string | null;
     minStock: number;
     /** Variant pertama yang ada stok (untuk quick add ProductCard). */
-    quickAddVariantId: string | null;
+    quickAddVariant: {
+      id: string;
+      color: string | null;
+      size: string | null;
+      stock: number;
+    } | null;
     avgRating: number | null;
     reviewCount: number;
   };
@@ -45,7 +53,7 @@ const WISHLIST_INCLUDE = {
       slug: true,
       price: true,
       images: true,
-      variants: { select: { id: true, stock: true } },
+      variants: { select: { id: true, color: true, size: true, stock: true } },
       reviews: { where: { status: "APPROVED" }, select: { rating: true } },
     },
   },
@@ -64,7 +72,12 @@ type WishlistRow = (typeof WISHLIST_INCLUDE)["product"]["select"] extends never
         slug: string;
         price: { toString(): string };
         images: unknown;
-        variants: Array<{ id: string; stock: number }>;
+        variants: Array<{
+          id: string;
+          color: string | null;
+          size: string | null;
+          stock: number;
+        }>;
         reviews: Array<{ rating: number }>;
       };
     };
@@ -81,9 +94,10 @@ function toShape(item: WishlistRow): WishlistItemShape {
       name: item.product.name,
       slug: item.product.slug,
       price: item.product.price.toString(),
-      image: parseImages(item.product.images)[0] ?? "",
+      image: parseImages(item.product.images)[0] ?? null,
+      hoverImage: parseImages(item.product.images)[1] ?? null,
       minStock: stocks.length > 0 ? Math.min(...stocks) : 0,
-      quickAddVariantId: item.product.variants.find((variant) => variant.stock > 0)?.id ?? null,
+      quickAddVariant: item.product.variants.find((variant) => variant.stock > 0) ?? null,
       avgRating:
         ratings.length > 0
           ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length

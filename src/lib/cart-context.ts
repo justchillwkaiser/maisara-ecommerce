@@ -19,6 +19,25 @@ export interface CartContext {
 export const CART_COOKIE = "cart-session";
 const CART_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 hari
 
+/**
+ * Cuba tulis cookie `cart-session`.
+ *
+ * Next.js hanya membenarkan cookie diubah dalam Server Action atau Route
+ * Handler. `getCartContext` juga dipanggil daripada Server Component (cth.
+ * halaman checkout), dan di situ cubaan menulis akan membaling ralat.
+ * Penulisan cookie ialah pembersihan sokongan, bukan logik perniagaan:
+ * kegagalannya tidak boleh dilaporkan sebagai kegagalan merge, dan ia akan
+ * berjaya pada panggilan Route Handler seterusnya (`/api/cart`).
+ */
+function tryWriteCookie(mutate: () => void): boolean {
+  try {
+    mutate();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function getCartContext(): Promise<CartContext> {
   const cookieStore = await cookies();
   let sessionId = cookieStore.get(CART_COOKIE)?.value ?? null;
@@ -31,13 +50,16 @@ export async function getCartContext(): Promise<CartContext> {
     console.error("[cart-context] gagal membaca session auth:", error);
   }
 
-  // Merge lazy: hanya sekali (cookie dibuang selepas berjaya). Jika merge
-  // gagal, cookie kekal dan ia dicuba semula pada request seterusnya.
+  // Merge lazy (UX.md Flow C): gabung cart guest ke user. Cookie dibuang
+  // selepas merge berjaya supaya merge tidak berulang. Jika penulisan cookie
+  // tidak dibenarkan pada konteks ini, merge tetap dikira berjaya - cookie
+  // akan dibersihkan oleh panggilan Route Handler seterusnya.
   if (userId && sessionId) {
     try {
       await mergeCart(userId, sessionId);
-      cookieStore.delete(CART_COOKIE);
-      sessionId = null;
+      if (tryWriteCookie(() => cookieStore.delete(CART_COOKIE))) {
+        sessionId = null;
+      }
     } catch (error) {
       console.error("[cart-context] merge cart gagal, cuba semula kemudian:", error);
     }
@@ -46,12 +68,14 @@ export async function getCartContext(): Promise<CartContext> {
   // Guest tulen tanpa cookie: cipta token baru + set cookie.
   if (!userId && !sessionId) {
     sessionId = crypto.randomUUID();
-    cookieStore.set(CART_COOKIE, sessionId, {
-      httpOnly: true,
-      path: "/",
-      maxAge: CART_COOKIE_MAX_AGE,
-      sameSite: "lax",
-    });
+    tryWriteCookie(() =>
+      cookieStore.set(CART_COOKIE, sessionId as string, {
+        httpOnly: true,
+        path: "/",
+        maxAge: CART_COOKIE_MAX_AGE,
+        sameSite: "lax",
+      }),
+    );
   }
 
   return { sessionId, userId };

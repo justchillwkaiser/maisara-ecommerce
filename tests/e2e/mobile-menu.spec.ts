@@ -29,3 +29,26 @@ test("menu mobile memenuhi viewport tanpa scroll", async ({ page }) => {
   expect(metrics!.bodyOverflow).toBe("hidden");
   expect(metrics!.overlayHeight).toBeGreaterThanOrEqual(metrics!.viewportHeight - 2);
 });
+/**
+ * Panel menu hanya dirender di bawah `lg`. Dulu, apabila viewport melebar
+ * melepasi had itu sementara panel terbuka (putaran peranti atau tetingkap
+ * dibesarkan), panel menjadi `display:none` tetapi state kekal terbuka:
+ * perangkap Tab terus `preventDefault()` dan cuba memfokus pautan tersembunyi,
+ * jadi kekunci Tab mati sepenuhnya dan kunci skrol badan kekal.
+ */
+test("menu mudah alih ditutup apabila viewport melebar melepasi lg", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Buka menu" }).click();
+  await expect(page.getByLabel("Menu utama")).toBeVisible();
+
+  await page.setViewportSize({ width: 1280, height: 844 });
+
+  await expect(page.getByLabel("Menu utama")).toBeHidden();
+  await expect
+    .poll(() => page.evaluate(() => document.body.style.overflow))
+    .toBe("");
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.tagName ?? "NONE"))
+    .not.toBe("BODY");
+});

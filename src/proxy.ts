@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { safeRelativePath } from "@/lib/safe-redirect";
 
 /**
  * Proxy (Next 16, menggantikan middleware).
@@ -8,13 +9,17 @@ import { auth } from "@/lib/auth";
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Halaman yang diminta (termasuk query) supaya pelanggan kembali ke tempat
+  // yang betul selepas log masuk.
+  const requested = safeRelativePath(`${pathname}${request.nextUrl.search}`, "/");
+
   const session = await auth.api.getSession({ headers: request.headers });
 
   // /akaun/*: mesti log masuk
   if (pathname.startsWith("/akaun")) {
     if (!session?.user) {
       const loginUrl = new URL("/log-masuk", request.url);
-      loginUrl.searchParams.set("next", pathname);
+      loginUrl.searchParams.set("next", requested);
       return NextResponse.redirect(loginUrl);
     }
     return NextResponse.next();
@@ -24,7 +29,7 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith("/admin")) {
     if (!session?.user) {
       const loginUrl = new URL("/log-masuk", request.url);
-      loginUrl.searchParams.set("next", pathname);
+      loginUrl.searchParams.set("next", requested);
       return NextResponse.redirect(loginUrl);
     }
     if (session.user.role !== "ADMIN") {

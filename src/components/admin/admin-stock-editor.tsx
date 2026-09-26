@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
 export interface StockRow {
   id: string;
@@ -91,22 +92,22 @@ export function AdminStockTable({ rows }: { rows: StockRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-line bg-card px-6 py-14 text-center text-sm text-ink-soft">
-        Tiada variants stok rendah. Bagus!
-      </div>
+      <p className="border border-line bg-paper-lift px-5 py-12 text-center text-body-sm text-cocoa">
+        Tiada variant dengan stok rendah.
+      </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-card">
-      <table className="w-full min-w-[720px] text-left text-sm">
+    <div className="overflow-x-auto border border-line bg-paper-lift">
+      <table className="w-full min-w-[720px] text-left text-body-sm">
         <thead>
-          <tr className="border-b border-line text-xs tracking-wide text-ink-soft uppercase">
-            <th className="px-5 py-3 font-medium">Produk</th>
-            <th className="px-5 py-3 font-medium">Variant</th>
-            <th className="px-5 py-3 font-medium">SKU</th>
-            <th className="px-5 py-3 font-medium">Status</th>
-            <th className="px-5 py-3 text-right font-medium">Stok</th>
+          <tr className="border-b border-line">
+            <th className="meta-label px-5 py-3 text-cocoa">Produk</th>
+            <th className="meta-label px-5 py-3 text-cocoa">Variant</th>
+            <th className="meta-label px-5 py-3 text-cocoa">SKU</th>
+            <th className="meta-label px-5 py-3 text-cocoa">Status</th>
+            <th className="meta-label px-5 py-3 text-right text-cocoa">Stok</th>
           </tr>
         </thead>
         <tbody>
@@ -115,28 +116,23 @@ export function AdminStockTable({ rows }: { rows: StockRow[] }) {
             const hasDraft = draft !== undefined && draft !== String(row.stock);
             return (
               <tr key={row.id} className="border-b border-line last:border-0">
-                <td className="max-w-52 truncate px-5 py-3 font-medium text-ink">
+                <td className="max-w-52 truncate px-5 py-3 text-ink">
                   {row.product.name}
                 </td>
-                <td className="px-5 py-3 text-ink-soft">
+                <td className="px-5 py-3 text-cocoa">
                   {[row.color, row.size].filter(Boolean).join(" / ") || "Saiz tunggal"}
                 </td>
-                <td className="px-5 py-3 text-ink-soft">
+                <td className="px-5 py-3 font-mono text-meta text-cocoa">
                   <span className="tabular-nums">{row.sku}</span>
                 </td>
                 <td className="px-5 py-3">
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-                      row.stock === 0
-                        ? "bg-danger/10 text-danger"
-                        : row.stock <= 5
-                          ? "bg-gold-tint text-gold-deep"
-                          : "bg-surface text-ink",
-                    )}
+                  <Badge
+                    variant={
+                      row.stock === 0 ? "danger" : row.stock <= 5 ? "clay" : "outline"
+                    }
                   >
                     {row.stock === 0 ? "Habis" : row.stock <= 5 ? "Stok Rendah" : "Mencukupi"}
-                  </span>
+                  </Badge>
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex items-center justify-end gap-2">
@@ -150,22 +146,18 @@ export function AdminStockTable({ rows }: { rows: StockRow[] }) {
                         if (event.key === "Enter") void saveStock(row.id);
                       }}
                       aria-label={`Kemas kini stok ${row.sku}`}
-                      className="h-9 w-24 text-right tabular-nums"
+                      className="h-9 w-24 rounded-xs text-right tabular-nums focus-visible:ring-2"
                     />
-                    <button
+                    <Button
                       type="button"
+                      size="icon-sm"
+                      variant={hasDraft ? "default" : "outline"}
                       onClick={() => void saveStock(row.id)}
                       disabled={!hasDraft || savingId === row.id}
                       aria-label="Simpan stok"
-                      className={cn(
-                        "flex size-9 shrink-0 items-center justify-center rounded-xl border border-line text-ink transition-colors",
-                        hasDraft
-                          ? "border-gold bg-gold text-card hover:bg-gold-deep"
-                          : "cursor-not-allowed opacity-40",
-                      )}
                     >
-                      <Check size={16} />
-                    </button>
+                      <Check />
+                    </Button>
                   </div>
                 </td>
               </tr>

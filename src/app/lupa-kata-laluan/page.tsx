@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+import { isEmailConfigured } from "@/lib/email-transport";
 
 export const metadata: Metadata = {
   title: "Lupa Kata Laluan",
@@ -13,18 +14,19 @@ export const metadata: Metadata = {
  */
 export default function LupaKataLaluanPage() {
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-16 md:py-24">
-      <div className="text-center">
-        <p className="text-xs tracking-wide text-ink-soft uppercase">Akaun Maisara</p>
-        <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight text-ink md:text-4xl">
-          Lupa Kata Laluan
-        </h1>
-        <p className="mt-3 text-sm text-ink-soft">
-          Masukkan email anda; kami akan hantar pautan untuk set semula kata laluan.
-        </p>
-      </div>
+    <div className="shell py-16 md:py-24">
+      <div className="mx-auto flex w-full max-w-[26rem] flex-col">
+        <header className="text-center">
+          <p className="meta-label text-cocoa">Akaun Maisara</p>
+          <h1 className="mt-4 font-display text-h2 text-ink">Lupa Kata Laluan</h1>
+          <p className="mt-4 text-body-sm text-cocoa">
+            Masukkan email anda; kami akan hantar pautan untuk set semula kata
+            laluan.
+          </p>
+        </header>
 
-      <ForgotPasswordForm />
+        <ForgotPasswordForm emailConfigured={isEmailConfigured()} />
+      </div>
     </div>
   );
 }

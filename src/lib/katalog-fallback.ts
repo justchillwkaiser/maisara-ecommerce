@@ -5,6 +5,7 @@ import type {
   ProductVariantDetail,
 } from "@/server/services/product.service";
 import type { ProductQuery } from "@/lib/validations/product";
+import { imagesFor, primaryImageFor } from "@/lib/product-images";
 
 /**
  * Fallback katalog = data seed (prisma/seed.ts) supaya halaman kekal hijau
@@ -92,26 +93,24 @@ const FALLBACK_REVIEWS: Record<
   ],
 };
 
-function fallbackImage(slug: string, index: number): string {
-  return `https://picsum.photos/seed/maisara-${slug}-${index + 1}/600/750`;
-}
-
 function toSummary(product: ProductSeed): ProductSummary {
   const colors = [...new Set(product.v.map((variant) => variant.color).filter(Boolean))] as string[];
   const sizes = [...new Set(product.v.map((variant) => variant.size).filter(Boolean))] as string[];
   const stocks = product.v.map((variant) => variant.stock);
+  const images = imagesFor(product.slug, 2);
 
   return {
     id: product.slug,
     name: product.name,
     slug: product.slug,
     price: product.price,
-    image: fallbackImage(product.slug, 0),
+    image: images[0] ?? primaryImageFor(product.slug, product.cat),
+    hoverImage: images[1] ?? null,
     category: { name: FALLBACK_CATEGORIES.find((c) => c.slug === product.cat)?.name ?? product.cat, slug: product.cat },
     colors,
     sizes,
     minStock: stocks.length > 0 ? Math.min(...stocks) : 0,
-    quickAddVariantId: null, // fallback tiada ID variant sebenar; kad link ke PDP
+    quickAddVariant: null, // fallback tiada ID variant sebenar; kad link ke PDP
     avgRating: null,
     reviewCount: 0,
   };
@@ -198,7 +197,7 @@ export function fallbackGetProductDetail(idOrSlug: string): ProductDetail | null
     slug: product.slug,
     description: product.desc,
     price: product.price,
-    images: Array.from({ length: product.imgs }, (_, i) => fallbackImage(product.slug, i)),
+    images: imagesFor(product.slug, product.imgs),
     category: { id: product.cat, name: categoryName, slug: product.cat },
     variants,
     reviews,

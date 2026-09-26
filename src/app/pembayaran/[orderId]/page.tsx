@@ -4,19 +4,21 @@ import { MockFpxActions } from "@/components/shop/mock-fpx-actions";
 import { db } from "@/lib/db";
 import { formatRM } from "@/lib/format";
 import { requireUser } from "@/server/guards";
+
 export const dynamic = "force-dynamic";
 
 interface PaymentPageProps {
   params: Promise<{ orderId: string }>;
 }
 
-/** Pilihan bank simulasi FPX (text sahaja, DESIGN.md 8). */
+/** Pilihan bank simulasi FPX (text sahaja). */
 const BANKS = ["Maybank", "CIMB Bank", "Public Bank", "Bank Islam"] as const;
 
 /**
- * Halaman pembayaran mock FPX (API.md section 5, DESIGN.md 8).
+ * Halaman pembayaran mock FPX (API.md section 5).
  * Bersih, TIADA motif (kawasan transaksi). User hanya boleh lihat order
  * sendiri; PAID -> success, FAILED -> papar cuba semula.
+ * Restyle sahaja — guard, query dan aliran mock kekal sama.
  */
 export default async function PaymentPage({ params }: PaymentPageProps) {
   const { orderId } = await params;
@@ -44,37 +46,47 @@ export default async function PaymentPage({ params }: PaymentPageProps) {
   const reference = order.payment?.reference ?? "";
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col px-4 py-12">
-      <div className="rounded-2xl border border-line bg-card p-6 sm:p-8">
-        <p className="text-xs tracking-wide text-ink-soft uppercase">Pembayaran Selamat</p>
-        <h1 className="mt-1 font-serif text-2xl text-ink">Bayaran melalui FPX</h1>
+    <div className="shell py-(--space-section)">
+      <div className="mx-auto w-full max-w-lg border border-line bg-paper-lift p-6 sm:p-8">
+        <p className="meta-label text-cocoa">Pembayaran Selamat</p>
+        <h1 className="mt-3 text-h2 text-ink">Bayaran melalui FPX</h1>
 
-        <div className="mt-6 rounded-xl bg-gold-tint/50 p-5 text-center">
-          <p className="text-xs text-ink-soft">Jumlah Bayaran</p>
-          <p className="mt-1 font-serif text-4xl text-ink tabular-nums">
+        <div className="mt-6 border border-line bg-bone p-6 text-center">
+          <p className="meta-label text-cocoa">Jumlah Bayaran</p>
+          <p className="mt-3 font-display text-h1 tabular-nums text-ink">
             {formatRM(order.total)}
           </p>
-          <p className="mt-2 text-xs text-ink-soft tabular-nums">Rujukan: {reference}</p>
+          <p className="mt-3 font-mono text-body-sm tabular-nums text-cocoa">
+            Rujukan: {reference}
+          </p>
         </div>
 
-        <div className="mt-6">
-          <h2 className="text-xs font-medium tracking-wide text-ink-soft uppercase">
-            Pilih Bank Anda
-          </h2>
-          <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
+        <div className="mt-8">
+          <h2 className="meta-label text-cocoa">Pilih Bank Anda</h2>
+          <ul className="mt-3 divide-y divide-line border border-line">
             {BANKS.map((bank) => (
-              <li key={bank} className="flex items-center justify-between px-4 py-3">
-                <span className="text-sm text-ink">{bank}</span>
-                <span className="size-4 rounded-full border border-line" aria-hidden />
+              <li
+                key={bank}
+                className="flex items-center justify-between gap-4 px-4 py-4"
+              >
+                <span className="text-body-sm text-ink">{bank}</span>
+                <span
+                  aria-hidden="true"
+                  className="size-3.5 rounded-full border border-line-strong"
+                />
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-center text-xs text-ink-soft">
+          <p className="mt-4 text-body-sm text-cocoa">
             Halaman simulasi untuk demo. Tiada wang sebenar dipindahkan.
           </p>
         </div>
 
-        <MockFpxActions orderId={order.id} reference={reference} paymentStatus={order.paymentStatus} />
+        <MockFpxActions
+          orderId={order.id}
+          reference={reference}
+          paymentStatus={order.paymentStatus}
+        />
       </div>
     </div>
   );

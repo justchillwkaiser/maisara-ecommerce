@@ -1,31 +1,29 @@
 import Link from "next/link";
 
 import { getCategories } from "@/lib/categories";
-
-import { BatikPattern, JawiText, SongketTexture } from "./motif";
+import { FOOTER_LINKS, SITE, SOCIAL_LINKS } from "@/lib/site";
 
 interface FooterColumn {
+  /** Dipakai sebagai id untuk aria-labelledby. */
+  id: string;
   title: string;
   links: { label: string; href: string }[];
 }
 
-const HELP_LINKS: FooterColumn["links"] = [
-  { label: "Penghantaran", href: "/penghantaran" },
-  { label: "Pertukaran", href: "/pertukaran" },
-  { label: "Hubungi Kami", href: "/hubungi-kami" },
-];
-
 const COMPANY_LINKS: FooterColumn["links"] = [
-  { label: "Kisah Kami", href: "/kisah-kami" },
+  { label: "Our Story", href: "/kisah-kami" },
+  { label: "Journal", href: "/journal" },
+  { label: "Contact", href: "/hubungi-kami" },
 ];
 
 /**
- * Footer Maisara (DESIGN.md 8, footer): bg-surface-alt + batik 5% + songket,
- * wordmark serif + tagline, 3 kolum links, bottom bar dengan Jawi.
+ * Footer Maisara (spesifikasi 22): wordmark + tagline, kolum SHOP, pautan
+ * utama, CUSTOMER CARE dan FOLLOW. Kolum FOLLOW dilangkau sepenuhnya apabila
+ * SOCIAL_LINKS kosong supaya footer tidak pernah memaparkan pautan mati.
  */
 export async function Footer() {
   const categories = await getCategories();
-  const collectionLinks: FooterColumn["links"] = [
+  const shopLinks: FooterColumn["links"] = [
     { label: "Semua Koleksi", href: "/koleksi" },
     ...categories.map((category) => ({
       label: category.name,
@@ -34,57 +32,62 @@ export async function Footer() {
   ];
 
   const columns: FooterColumn[] = [
-    { title: "Koleksi", links: collectionLinks },
-    { title: "Bantuan", links: HELP_LINKS },
-    { title: "Syarikat", links: COMPANY_LINKS },
+    { id: "shop", title: "Shop", links: shopLinks },
+    { id: "company", title: "Company", links: COMPANY_LINKS },
+    { id: "customer-care", title: "Customer Care", links: [...FOOTER_LINKS.customerCare] },
+    ...(SOCIAL_LINKS.length > 0
+      ? [
+          {
+            id: "follow",
+            title: "Follow",
+            links: SOCIAL_LINKS.map(({ label, href }) => ({ label, href })),
+          },
+        ]
+      : []),
   ];
 
   return (
-    <footer className="relative overflow-hidden border-t border-line bg-surface-alt">
-      {/* Motif warisan (DESIGN.md 5.4: footer = batik 5% + songket) */}
-      <BatikPattern opacity={0.05} className="absolute inset-0" />
-      <SongketTexture className="absolute inset-0" />
+    <footer className="border-t border-line bg-bone">
+      <div className="shell pt-(--space-section) pb-16 md:pb-20">
+        <div className="grid-12 gap-y-14">
+          {/* Wordmark + tagline */}
+          <div className="col-span-12 lg:col-span-4">
+            <p className="font-display text-2xl leading-none tracking-[0.16em] text-ink">
+              {SITE.name}
+            </p>
+            <p className="mt-5 max-w-[34ch] text-body-sm text-cocoa">{SITE.tagline}</p>
+          </div>
 
-      <div className="relative mx-auto w-full max-w-[1400px] px-4 py-20 md:px-8">
-        {/* Wordmark + tagline */}
-        <div className="mb-14">
-          <p className="font-serif text-2xl font-semibold tracking-[0.02em] text-ink">
-            Maisara
-          </p>
-          <p className="mt-2 text-sm text-ink-soft">Warisan untuk fesyen harian.</p>
-        </div>
-
-        {/* Kolum links */}
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
-          {columns.map((column) => (
-            <div key={column.title}>
-              <h3 className="mb-4 text-xs font-medium uppercase tracking-wider text-ink-soft">
-                {column.title}
-              </h3>
-              <ul>
-                {column.links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="block py-1 text-sm text-ink-soft transition-colors hover:text-gold-deep"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* Kolum pautan */}
+          <div className="col-span-12 grid grid-cols-2 gap-x-(--gutter) gap-y-10 sm:grid-cols-3 lg:col-span-8 lg:grid-cols-4">
+            {columns.map((column) => (
+              <nav key={column.id} aria-labelledby={`footer-${column.id}`}>
+                <h2 id={`footer-${column.id}`} className="meta-label text-cocoa">
+                  {column.title}
+                </h2>
+                <ul className="mt-4">
+                  {column.links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        className="flex min-h-11 items-center text-body-sm text-ink/75 transition-colors duration-(--dur-fast) hover:text-ink"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Bottom bar */}
-      <div className="relative border-t border-line">
-        <div className="mx-auto flex w-full max-w-[1400px] flex-col items-center justify-between gap-4 px-4 py-6 md:flex-row md:px-8">
-          <p className="text-sm text-ink-soft">
-            © 2026 Maisara. Semua hak terpelihara.
-          </p>
-          <JawiText className="text-lg text-gold-deep" />
+      <div className="border-t border-line">
+        <div className="shell flex flex-col gap-3 py-6 md:flex-row md:items-center md:justify-between">
+          <p className="meta-label text-cocoa">© {SITE.name}</p>
+          <p className="text-body-sm text-cocoa">{SITE.closing}</p>
         </div>
       </div>
     </footer>

@@ -1,46 +1,52 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { Slot } from "radix-ui"
+import { cva, type VariantProps } from "class-variance-authority";
+import { Slot } from "radix-ui";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
+/**
+ * Badge MAISARA. Radius 2px — bukan pill (spesifikasi 09).
+ * Warna dipilih daripada token sistem sahaja.
+ */
 const badgeVariants = cva(
-  "group/badge inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border px-2.5 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  [
+    "inline-flex w-fit shrink-0 items-center justify-center gap-1.5 rounded-xs border px-2 py-1",
+    "font-mono text-[0.625rem] leading-none tracking-[0.12em] uppercase whitespace-nowrap",
+    "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-3",
+  ].join(" "),
   {
     variants: {
       variant: {
-        default: "border-transparent bg-gold-tint text-gold-deep",
-        secondary: "border-transparent bg-surface text-ink",
-        success: "border-transparent bg-success/10 text-success",
-        warning: "border-transparent bg-gold-tint text-gold-deep",
-        danger: "border-transparent bg-danger/10 text-danger",
-        outline: "border-line text-ink",
-        ghost: "text-ink-soft",
+        default: "border-transparent bg-ink text-paper",
+        outline: "border-line-strong text-cocoa",
+        muted: "border-transparent bg-bone text-cocoa",
+        brass: "border-brass/40 bg-transparent text-cocoa",
+        clay: "border-clay/50 bg-transparent text-cocoa",
+        olive: "border-olive/45 bg-transparent text-cocoa",
+        danger: "border-oxblood/45 bg-transparent text-oxblood",
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "outline",
     },
-  }
-)
+  },
+);
 
 function Badge({
   className,
-  variant = "default",
+  variant = "outline",
   asChild = false,
   ...props
 }: React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : "span"
+  const Comp = asChild ? Slot.Root : "span";
 
   return (
     <Comp
       data-slot="badge"
-      data-variant={variant}
       className={cn(badgeVariants({ variant }), className)}
       {...props}
     />
-  )
+  );
 }
 
-export { Badge, badgeVariants }
+export { Badge, badgeVariants };

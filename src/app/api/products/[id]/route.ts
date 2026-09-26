@@ -1,14 +1,12 @@
 import { NextRequest } from "next/server";
 
 import { ApiError } from "@/lib/errors";
-import { db } from "@/lib/db";
 import { fallbackGetProductDetail } from "@/lib/katalog-fallback";
 import { productUpdateSchema } from "@/lib/validations/product";
 import { requireAdmin } from "@/server/guards";
 import {
   deactivateProduct,
-  PRODUCT_DETAIL_INCLUDE,
-  toProductDetail,
+  getProductById,
   updateProduct,
 } from "@/server/services/product.service";
 
@@ -27,16 +25,11 @@ export async function GET(_request: Request, context: ProductDetailRouteContext)
   try {
     const { id } = await context.params;
 
-    const product = await db.product.findUnique({
-      where: { id },
-      include: PRODUCT_DETAIL_INCLUDE,
-    });
-
-    if (!product || !product.isActive) {
+    const product = await getProductById(id);
+    if (!product) {
       throw new ApiError("NOT_FOUND", "Produk tidak ditemui.", 404);
     }
-
-    return Response.json(toProductDetail(product));
+    return Response.json(product);
   } catch (error) {
     if (error instanceof ApiError) {
       return Response.json(

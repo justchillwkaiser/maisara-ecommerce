@@ -1,16 +1,24 @@
-import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
 import { FilterDrawer } from "@/components/shop/filter-drawer";
 import {
   FilterSidebar,
+  KoleksiFilterTokens,
   type SidebarParams,
 } from "@/components/shop/filter-sidebar";
-import { LoadMore } from "@/components/shop/load-more";
+import {
+  KoleksiResultCount,
+  KoleksiResults,
+  KoleksiResultsProvider,
+} from "@/components/shop/load-more";
 import { SortSelect } from "@/components/shop/sort-select";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CriticalImagePreload } from "@/components/ui/critical-image-preload";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { getCategories } from "@/lib/categories";
 import { db } from "@/lib/db";
+import { GRID_SIZES } from "@/lib/image-sizes";
 import {
   fallbackListProducts,
   FALLBACK_COLORS,
@@ -68,7 +76,18 @@ async function getFilterOptions(categorySlug?: string) {
   }
 }
 
-/** Halaman koleksi (DESIGN.md 8 - Katalog). Dikongsi /koleksi dan /koleksi/[category]. */
+/** Bilangan tapisan aktif daripada URL; ketersediaan (klien) ditambah di UI. */
+function countActiveFilters(params: SidebarParams): number {
+  let count = 0;
+  if (params.category) count += 1;
+  if (params.search) count += 1;
+  if (params.minPrice || params.maxPrice) count += 1;
+  if (params.color) count += 1;
+  if (params.size) count += 1;
+  return count;
+}
+
+/** Halaman koleksi (spesifikasi 14 - Katalog). Dikongsi /koleksi dan /koleksi/[category]. */
 export async function KoleksiView({ searchParams, categoryParam }: KoleksiViewProps) {
   const params = await searchParams;
 
@@ -116,96 +135,121 @@ export async function KoleksiView({ searchParams, categoryParam }: KoleksiViewPr
   const activeCategoryName = categories.find(
     (category) => category.slug === effectiveCategory,
   )?.name;
-  const title = activeCategoryName ? `Koleksi ${activeCategoryName}` : "Semua Koleksi";
-
+  const activeFilterCount = countActiveFilters(current);
   const hasMore = result.total > result.page * result.pageSize;
+  const isEmpty = result.items.length === 0;
+
+  const emptyState =
+    activeFilterCount > 0 ? (
+      <EmptyState
+        eyebrow="Tiada padanan"
+        title="Tiada produk sepadan dengan tapisan ini"
+        description="Cuba luaskan julat harga, buang satu tapisan, atau kosongkan penapis untuk melihat seluruh koleksi."
+        action={{ label: "Kosongkan penapis", href: "/koleksi" }}
+      />
+    ) : activeCategoryName ? (
+      <EmptyState
+        eyebrow={activeCategoryName}
+        title={`Koleksi ${activeCategoryName} belum ada produk`}
+        description="Koleksi ini akan diisi apabila produk baharu dibuka. Lihat koleksi lain sementara itu."
+        action={{ label: "Lihat semua koleksi", href: "/koleksi" }}
+      />
+    ) : (
+      <EmptyState
+        eyebrow="Katalog"
+        title="Katalog belum dibuka"
+        description="Tiada produk diterbitkan buat masa ini. Kembali sebentar lagi."
+        action={{ label: "Kembali ke laman utama", href: "/" }}
+      />
+    );
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-4 py-12 md:px-8 md:py-20">
-      {/* Header: tajuk serif + kiraan + carian */}
-      <header className="mb-10">
-        <h1 className="font-serif text-4xl font-medium tracking-tight text-ink md:text-5xl">
-          {title}
-        </h1>
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm text-ink-soft tabular-nums">
-            {result.total} produk
-          </p>
-          <form action="/koleksi" method="get" className="flex items-center">
+    <div className="shell py-(--space-section)">
+      {/* Preload baris pertama grid daripada komponen pelayan: `loading.tsx`
+          pada /koleksi menjadikan laluan ini sempadan Suspense, jadi pautan
+          preload dari kad klien jatuh ~60KB ke dalam <body> (ditemui pada
+          253ms). Baris pertama (4 kad) berada dalam viewport awal pada desktop,
+          jadi ia sah untuk diutamakan; baris seterusnya kekal lazy. */}
+      {result.items.slice(0, 4).map((item) => (
+        <CriticalImagePreload
+          key={`lcp-${item.id}`}
+          src={item.image}
+          sizes={GRID_SIZES}
+        />
+      ))}
+      <KoleksiResultsProvider
+        key={queryStringWithoutPage}
+        initialItems={result.items}
+        queryString={queryStringWithoutPage}
+        nextPage={result.page + 1}
+        hasMore={hasMore}
+      >
+        <header className="border-b border-line pb-8 md:pb-10">
+          <SectionHeading
+            as="h1"
+            size="display-m"
+            eyebrow={activeCategoryName ? "Katalog / Kategori" : "Katalog / Semua"}
+            title={activeCategoryName ? `Koleksi ${activeCategoryName}` : "SHOP ALL"}
+            description={
+              activeCategoryName
+                ? undefined
+                : "Koleksi Maisara untuk hari biasa, hari istimewa dan segala yang di antaranya."
+            }
+            action={<KoleksiResultCount total={result.total} />}
+          />
+
+          <form action="/koleksi" method="get" className="mt-8 flex items-center">
             <input type="hidden" name="category" value={current.category ?? ""} />
             <input type="hidden" name="color" value={current.color ?? ""} />
             <input type="hidden" name="size" value={current.size ?? ""} />
             <input type="hidden" name="sort" value={current.sort ?? ""} />
-            <label className="relative flex items-center">
+            <label className="relative flex w-full items-center sm:w-72">
               <span className="sr-only">Cari produk</span>
               <MagnifyingGlass
                 size={16}
                 aria-hidden="true"
-                className="pointer-events-none absolute left-4 text-ink-soft"
+                className="pointer-events-none absolute left-4 text-cocoa"
               />
               <input
                 type="search"
                 name="search"
                 defaultValue={current.search}
                 placeholder="Cari produk..."
-                className="h-10 w-full min-w-0 rounded-full border border-line bg-card pr-4 pl-10 text-sm outline-none placeholder:text-ink-soft/70 focus-visible:border-gold focus-visible:ring-3 focus-visible:ring-gold/25 sm:w-64"
+                className="h-11 w-full min-w-0 rounded-xs border border-line bg-paper-lift pr-4 pl-10 text-body-sm text-ink outline-none placeholder:text-cocoa/70 focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-ink/30"
               />
             </label>
           </form>
-        </div>
-      </header>
+        </header>
 
-      {/* Sidebar kiri desktop + kandungan kanan */}
-      <div className="grid gap-10 lg:grid-cols-[260px,1fr]">
-        <aside className="hidden lg:block">
-          <FilterSidebar
-            current={current}
-            categories={categories}
-            colors={filterOptions.colors}
-            sizes={filterOptions.sizes}
-          />
-        </aside>
-
-        <div>
-          {/* Bar alat: drawer mobile + susun */}
-          <div className="mb-6 flex items-center justify-between gap-3">
-            <FilterDrawer>
-              <FilterSidebar
-                current={current}
-                categories={categories}
-                colors={filterOptions.colors}
-                sizes={filterOptions.sizes}
-              />
-            </FilterDrawer>
-            <SortSelect current={current} value={query.sort ?? "popular"} className="ml-auto" />
-          </div>
-
-          {result.items.length === 0 ? (
-            <div className="rounded-2xl border border-line bg-card px-6 py-16 text-center">
-              <p className="font-serif text-2xl font-semibold text-ink">
-                Tiada produk ditemui.
-              </p>
-              <p className="mt-2 text-ink-soft">
-                Cuba tukar filter atau carian anda.
-              </p>
-              <Link
-                href="/koleksi"
-                className="mt-7 inline-flex h-11 items-center rounded-full bg-gold px-7 text-sm font-medium text-card transition-colors hover:bg-gold-deep"
-              >
-                Reset Tapisan
-              </Link>
-            </div>
-          ) : (
-            <LoadMore
-              key={queryStringWithoutPage}
-              initialItems={result.items}
-              queryString={queryStringWithoutPage}
-              nextPage={result.page + 1}
-              hasMore={hasMore}
+        <div className="grid-12 mt-10 gap-y-10 md:mt-14">
+          <aside aria-label="Penapis" className="col-span-12 hidden lg:col-span-3 lg:block">
+            <FilterSidebar
+              current={current}
+              categories={categories}
+              colors={filterOptions.colors}
+              sizes={filterOptions.sizes}
             />
-          )}
+          </aside>
+
+          <div className="col-span-12 lg:col-span-9">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <FilterDrawer baseCount={activeFilterCount}>
+                <FilterSidebar
+                  current={current}
+                  categories={categories}
+                  colors={filterOptions.colors}
+                  sizes={filterOptions.sizes}
+                />
+              </FilterDrawer>
+              <SortSelect current={current} value={query.sort ?? "popular"} className="ml-auto" />
+            </div>
+
+            <KoleksiFilterTokens current={current} categories={categories} />
+
+            {isEmpty ? emptyState : <KoleksiResults />}
+          </div>
         </div>
-      </div>
+      </KoleksiResultsProvider>
     </div>
   );
 }
