@@ -60,14 +60,14 @@ interface ProductCardProps {
 function StockBadge({ minStock }: { minStock: number }) {
   if (minStock === 0) {
     return (
-      <span className="meta-label border border-line-strong bg-paper/90 px-2 py-1 text-cocoa backdrop-blur-[2px]">
+      <span className="meta-label border border-line-strong bg-paper/90 px-2 py-1 whitespace-nowrap text-cocoa backdrop-blur-[2px]">
         Habis
       </span>
     );
   }
   if (minStock <= 5) {
     return (
-      <span className="meta-label border border-clay/50 bg-paper/90 px-2 py-1 text-cocoa backdrop-blur-[2px]">
+      <span className="meta-label border border-clay/50 bg-paper/90 px-2 py-1 whitespace-nowrap text-cocoa backdrop-blur-[2px]">
         {minStock} unit lagi
       </span>
     );

@@ -124,15 +124,13 @@ describe("createOrder", () => {
       redirectUrl: "/pembayaran/order-1",
       reference: "MOCK-abc123",
     });
-    mocks.paymentCreate.mockResolvedValue({ id: "pay-1" });
 
     const result = await createOrder("user-1", validInput);
 
-    expect(result).toEqual({
-      orderId: "order-1",
-      paymentReference: "MOCK-abc123",
-      redirectUrl: "/pembayaran/order-1",
-    });
+    // orderId pra-jana sebelum transaction (bukan id dari mock orderCreate).
+    expect(result.paymentReference).toEqual("MOCK-abc123");
+    expect(result.redirectUrl).toEqual("/pembayaran/order-1");
+    expect(typeof result.orderId).toEqual("string");
 
     // Baris cart diklaim + dipadam dalam transaction (idempotensi checkout)
     expect(mocks.cartItemDeleteMany).toHaveBeenCalledWith({
@@ -171,17 +169,23 @@ describe("createOrder", () => {
       }),
     );
 
-    // Payment PENDING dengan reference dari provider
-    expect(mocks.paymentCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        orderId: "order-1",
-        provider: "mock",
-        reference: "MOCK-abc123",
-        status: "PENDING",
-        amount: "87.80",
-        url: "/pembayaran/order-1",
+    // Payment PENDING nested dalam order yang sama (atomic, tiada order yatim).
+    expect(mocks.orderCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          payment: {
+            create: expect.objectContaining({
+              provider: "mock",
+              reference: "MOCK-abc123",
+              status: "PENDING",
+              amount: "87.80",
+              url: "/pembayaran/order-1",
+            }),
+          },
+        }),
       }),
-    });
+    );
+    expect(mocks.paymentCreate).not.toHaveBeenCalled();
   });
 
   it("dua item + Pos Laju ke Sabah -> subtotal/shipping/total betul", async () => {
@@ -290,15 +294,43 @@ describe("createOrder", () => {
     expect(mocks.paymentCreate).not.toHaveBeenCalled();
   });
 
-  it("runtuhkan stok sebelum payment (payment gagal) -> order kekal tanpa payment row", async () => {
+  it("provider gagal sebelum transaction -> tiada order, tiada tolak stok, retry selamat (cart utuh)", async () => {
+    mocks.cartItemFindMany.mockResolvedValue([cartRow()]);
+    mocks.providerCreatePayment.mockRejectedValue(new Error("provider down"));
+
+    await expect(createOrder("user-1", validInput)).rejects.toThrow("provider down");
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+    expect(mocks.variantUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.paymentCreate).not.toHaveBeenCalled();
+  });
+
+  it("payment row dicipta dalam transaction yang sama (tiada order yatim)", async () => {
     mocks.cartItemFindMany.mockResolvedValue([cartRow()]);
     mocks.variantFindUnique.mockResolvedValue({ id: "v1", stock: 10 });
     mocks.variantUpdateMany.mockResolvedValue({ count: 1 });
     mocks.orderCreate.mockResolvedValue({ id: "order-1" });
-    mocks.providerCreatePayment.mockRejectedValue(new Error("provider down"));
+    mocks.providerCreatePayment.mockResolvedValue({
+      redirectUrl: "/pembayaran/order-1",
+      reference: "MOCK-abc123",
+    });
 
-    await expect(createOrder("user-1", validInput)).rejects.toThrow("provider down");
-    expect(mocks.orderCreate).toHaveBeenCalledTimes(1);
+    await createOrder("user-1", validInput);
+
+    // Nested payment create dalam tx.order.create (bukan db.payment.create berasingan).
+    expect(mocks.orderCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          payment: {
+            create: expect.objectContaining({
+              reference: "MOCK-abc123",
+              status: "PENDING",
+              url: "/pembayaran/order-1",
+            }),
+          },
+        }),
+      }),
+    );
     expect(mocks.paymentCreate).not.toHaveBeenCalled();
   });
 });

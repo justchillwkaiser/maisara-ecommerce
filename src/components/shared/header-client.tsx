@@ -73,7 +73,7 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
   const router = useRouter();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
   const wasOpen = useRef(false);
   const setMenuOpen = useContext(MenuOpenContext);
 
@@ -98,11 +98,12 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
     };
   }, [open]);
 
-  // Fokus masuk ke panel semasa dibuka, kembali ke butang MENU semasa ditutup.
+  // Fokus masuk ke pautan pertama panel semasa dibuka, kembali ke butang
+  // header semasa ditutup.
   useEffect(() => {
     if (open) {
       wasOpen.current = true;
-      closeRef.current?.focus();
+      firstLinkRef.current?.focus();
       return;
     }
     if (wasOpen.current) {
@@ -187,6 +188,11 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
 
   return (
     <>
+      {/*
+        Satu-satunya kawalan tutup: butang header (MENU → "Tutup ×") kekal di
+        atas panel kerana panel dirender pada z-40 di bawah header (z-50).
+        Tiada butang tutup kedua di dalam panel.
+      */}
       <button
         ref={triggerRef}
         type="button"
@@ -195,18 +201,26 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
         aria-controls="menu-mudah-alih"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "meta-label flex min-h-11 min-w-11 items-center justify-center rounded-xs px-2 text-ink",
+          "meta-label flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xs px-2 text-ink",
           "transition-colors duration-(--dur-fast) hover:bg-bone lg:hidden",
           "group-data-[state=top]:text-paper group-data-[state=top]:hover:bg-paper/10",
         )}
       >
-        {open ? <X size={18} weight="bold" aria-hidden="true" /> : "MENU"}
+        {open ? (
+          <>
+            Tutup
+            <X size={16} weight="bold" aria-hidden="true" />
+          </>
+        ) : (
+          "MENU"
+        )}
       </button>
-
       {/* Panel di-portal ke body: `backdrop-filter` pada header mewujudkan
           containing block untuk keturunan position:fixed, jadi panel yang
           dirender dalam header akan resolve inset terhadap header (64/72px)
-          dan bukan viewport. Portal melepaskan panel daripada header. */}
+          dan bukan viewport. Portal melepaskan panel daripada header. Panel
+          kekal pada z-40, di bawah header (z-50), supaya butang "Tutup" di
+          header sentiasa kekal di atas dan boleh diklik. */}
       {typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
@@ -229,27 +243,13 @@ export function HeaderClient({ categories, user }: HeaderClientProps) {
                   aria-label="Menu utama"
                   className="flex min-h-full w-full flex-col px-5 pt-20 pb-10 md:pt-24"
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="meta-label text-cocoa">Menu</p>
-                    <button
-                      ref={closeRef}
-                      type="button"
-                      onClick={() => setOpen(false)}
-                      className={cn(
-                        "meta-label flex min-h-11 items-center gap-2 rounded-xs px-2 text-ink",
-                        "transition-colors duration-(--dur-fast) hover:bg-bone",
-                      )}
-                    >
-                      Tutup
-                      <X size={16} weight="bold" aria-hidden="true" />
-                    </button>
-                  </div>
-
+                  <p className="meta-label text-cocoa">Menu</p>
                   <div className="mt-6">
                     <p className="meta-label text-cocoa">Koleksi</p>
                     <ul className="mt-3 space-y-1">
                       <motion.li {...stagger(0)}>
                         <Link
+                          ref={firstLinkRef}
                           href="/koleksi"
                           onClick={() => navigate("/koleksi")}
                           className="flex min-h-11 items-center font-display text-h2 text-ink transition-colors duration-(--dur-fast) hover:text-cocoa"

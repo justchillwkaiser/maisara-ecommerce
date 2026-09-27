@@ -67,11 +67,10 @@ export function Craft() {
             {CRAFT_STEPS.map((step) => (
               <div
                 key={step.numeral}
-                className="grid grid-cols-[3rem_1fr] gap-4 border-t border-line-strong py-7 last:border-b"
+                className="grid grid-cols-1 gap-3 border-t border-line-strong py-7 last:border-b lg:grid-cols-[12rem_1fr] lg:gap-6"
               >
-                <dt className="meta-label text-cocoa">
-                  <span className="block">{step.numeral}</span>
-                  <span className="mt-1 block text-ink">{step.label}</span>
+                <dt className="meta-label text-cocoa lg:pt-1.5">
+                  {step.numeral} / {step.label}
                 </dt>
                 <dd className="text-body-lg text-cocoa">{step.detail}</dd>
               </div>

@@ -48,11 +48,16 @@ const CHECKOUT_CART_INCLUDE = {
  * Cipta order dari cart user (API.md section 4 - POST /api/orders).
  * 1. Ambil cart user (hanya produk aktif).
  * 2. Kira subtotal/shipping/total DARI DB.
- * 3. Transaction: klaim + padam baris cart (beg dikosongkan), semak stok,
- *    kurangkan stok (updateMany stock >= qty - elak race), cipta Order +
- *    OrderItem snapshot. Padam-dahulu menjadikan checkout idempotent:
- *    permintaan kedua yang serentak tidak mencipta order kedua.
- * 4. Initiate payment (provider) + cipta Payment row PENDING.
+ * 3. Initiate payment DENGAN orderId pra-jana (provider tidak menyentuh DB;
+ *    gagal di sini bermakna tiada apa dikomit dan retry selamat kerana
+ *    cart masih utuh).
+ * 4. Transaction tunggal: klaim + padam baris cart (beg dikosongkan), semak
+ *    stok, kurangkan stok (updateMany stock >= qty - elak race), cipta Order
+ *    (id pra-jana) + OrderItem snapshot + Payment PENDING. Padam-dahulu
+ *    menjadikan checkout idempotent: permintaan kedua yang serentak tidak
+ *    mencipta order kedua. Selepas komit tiada operasi yang boleh gagal,
+ *    jadi order tidak pernah wujud tanpa payment row (order yatim) dan
+ *    retry selepas 500 tidak tersangkut.
  */
 export async function createOrder(
   userId: string,
@@ -75,7 +80,15 @@ export async function createOrder(
   );
   const total = subtotal.add(new Prisma.Decimal(shippingFee));
 
-  const orderId = await db.$transaction(async (tx) => {
+  // Initiate payment SEBELUM transaction dengan orderId pra-jana. Provider
+  // tidak menyentuh DB; jika ini gagal, tiada apa dikomit dan cart masih
+  // utuh, jadi retry selamat. Reference + redirectUrl sebenar dibawa masuk
+  // ke dalam transaction supaya order tidak pernah komit tanpa payment row.
+  const orderId = crypto.randomUUID();
+  const provider = getPaymentProvider();
+  const payment = await provider.createPayment({ orderId, amount: total.toNumber() });
+
+  await db.$transaction(async (tx) => {
     // Klaim baris cart: padam dahulu, iaitu compare-and-swap. Checkout
     // serentak kedua (double-click / dua tab) padam 0 baris dan dibatalkan,
     // jadi tiada order kedua dan stok tidak ditolak dua kali. Rollback
@@ -118,8 +131,9 @@ export async function createOrder(
       }
     }
 
-    const order = await tx.order.create({
+    await tx.order.create({
       data: {
+        id: orderId,
         userId,
         status: "PENDING",
         subtotal: subtotal.toFixed(2),
@@ -137,30 +151,22 @@ export async function createOrder(
             unitPrice: item.variant.product.price.toString(),
           })),
         },
+        payment: {
+          create: {
+            provider: "mock",
+            reference: payment.reference,
+            status: "PENDING",
+            amount: total.toFixed(2),
+            url: payment.redirectUrl,
+          },
+        },
       },
-      select: { id: true },
     });
-
-    return order.id;
   });
 
-  // Initiate payment di luar transaction (call provider berbeza-beza;
-  // mock: dalam memory). Kegagalan di sini tidak membatalkan order - admin
-  // boleh initiate semula melalui POST /api/payments/[orderId].
-  const provider = getPaymentProvider();
-  const payment = await provider.createPayment({ orderId, amount: total.toNumber() });
-
-  await db.payment.create({
-    data: {
-      orderId,
-      provider: "mock",
-      reference: payment.reference,
-      status: "PENDING",
-      amount: total.toFixed(2),
-      url: payment.redirectUrl,
-    },
-  });
-
+  // Komit berjaya: order + payment row PENDING sentiasa wujud bersama.
+  // Tiada operasi fallible selepas titik ini, jadi 500 selepas komit
+  // mustahil dari fungsi ini dan retry selepas 500 tidak tersangkut.
   return { orderId, paymentReference: payment.reference, redirectUrl: payment.redirectUrl };
 }
 

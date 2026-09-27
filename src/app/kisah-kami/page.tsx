@@ -52,7 +52,7 @@ function Chapter({
           <p className="meta-label text-cocoa">
             {numeral} {label}
           </p>
-          <h2 className="mt-6 max-w-[18ch] font-display text-h1 text-ink">
+          <h2 className="mt-6 max-w-[18ch] font-display text-h1 text-ink text-balance">
             {title}
           </h2>
           <div className="mt-6 space-y-5 text-body text-cocoa">{children}</div>
@@ -91,7 +91,7 @@ export default function KisahKamiPage() {
         <h1 className="mt-6 max-w-[24ch] font-display text-display-l text-ink">
           It started with a sewing machine.
         </h1>
-        <p className="mt-8 max-w-[58ch] text-body-lg text-cocoa">
+        <p className="mt-8 max-w-[58ch] text-body-lg text-cocoa text-pretty">
           Bermula daripada satu mesin jahit di Johor, Maisara menyediakan
           pakaian yang dibuat untuk dipakai berulang kali: tenang pada
           pandangan, selesa pada badan, dan cukup tahan untuk hari yang

@@ -75,7 +75,7 @@ export default function TentangPage() {
         {SECTIONS.map((section) => (
           <section
             key={section.label}
-            className="grid-12 gap-y-4 border-t border-line py-(--space-section)"
+            className="grid-12 gap-y-5 border-t border-line py-(--space-section) md:gap-y-4"
           >
             <p className="meta-label col-span-12 text-cocoa md:col-span-3">
               {section.label}
